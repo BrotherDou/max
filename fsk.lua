@@ -54,11 +54,6 @@ local Feng = FengYu:Section({
     open = true
 })
 
-Feng:Paragraph({
-    Name = "<font color='#ff6666'>更新内容</font>",
-    Content = "●- 修复了大部分功能不能用的问题"
-})
-
 Feng:Video({
     Video = "rbxassetid://5608337069",
     Name = "视频",
@@ -67,6 +62,11 @@ Feng:Video({
     Volume = 0.5,
     AspectRatio = "16:9",
     Radius = 8,
+})
+
+Feng:Paragraph({
+    Name = "<font color='#ff6666'>★更新内容★</font>",
+    Content = "●- <u>幸存者区</u>新更新<font color='#57FF20'>综合功能</font>\n●- <u>通用区</u>新更新<font color='#57FF20'>无敌功能</font>"
 })
 
 local FengYu = Window:Tab("高级功能", "84830962019412")
@@ -500,7 +500,6 @@ do
         generators = false,
         noclip = false,
         allowJump = false,
-        invis = false,
         showChat = false,
     }
 
@@ -541,83 +540,6 @@ do
                 if humanoid then
                     humanoid.JumpPower = 50
                 end
-            end
-        end
-    end)
-
-    local loopRunning = false
-    local loopThread = nil
-    local currentAnim, lastAnim
-    local anim = Instance.new("Animation")
-    anim.AnimationId = "rbxassetid://75804462760596"
-
-    local function setupInvisibility(value)
-        if value then
-            loopRunning = true
-            loopThread = task.spawn(function()
-                while loopRunning do
-                    local char = localPlayer.Character
-                    if char then
-                        enableNoclip()
-                        local humanoid = char:FindFirstChild("Humanoid")
-                        if humanoid then
-                            local loadedAnim = humanoid:LoadAnimation(anim)
-                            currentAnim = loadedAnim
-                            loadedAnim.Looped = false
-                            loadedAnim:Play()
-                            loadedAnim:AdjustSpeed(0)
-                            task.wait(0.1)
-                            if lastAnim then
-                                lastAnim:Stop()
-                                lastAnim:Destroy()
-                            end
-                            lastAnim = currentAnim
-                        end
-                    else
-                        currentAnim = nil
-                    end
-                    task.wait()
-                end
-            end)
-            return true
-        else
-            loopRunning = false
-            if loopThread then
-                task.cancel(loopThread)
-            end
-            if currentAnim then
-                currentAnim:Stop()
-                currentAnim = nil
-            end
-            local char = localPlayer.Character
-            if char then
-                local humanoid = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChildOfClass("AnimationController")
-                if humanoid then
-                    for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
-                        track:AdjustSpeed(1)
-                    end
-                end
-                for _, part in pairs(char:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = true
-                    end
-                end
-                local animateScript = char:FindFirstChild("Animate")
-                if animateScript then
-                    animateScript.Disabled = true
-                    animateScript.Disabled = false
-                end
-            end
-            return true
-        end
-    end
-
-    task.spawn(function()
-        while task.wait(0.5) do
-            if state.invis and not loopRunning then
-                setupInvisibility(true)
-            elseif not state.invis and loopRunning then
-                setupInvisibility(false)
             end
         end
     end)
@@ -865,151 +787,16 @@ Feng:Toggle({
         state.noclip = value
     end
 })
-
-Feng:Toggle({
-    Name = "隐身",
-    Value = false,
-    Callback = function(value)
-        state.invis = value
-    end
-})
 end
 
-local Feng = FengYu:Section({
-    Name = "状态免疫",
-    SubName = "免疫负面效果",
-    Logo = "100851815815313",
-    open = true
-})
-
-do
-    local statusGroups = {
-        Slowness      = { on = false, paths = { "Modules.StatusEffects.Slowness" } },
-        Hallucination = { on = false, paths = { "Modules.StatusEffects.KillerExclusive.Hallucination" } },
-        Visual        = { on = false, paths = {
-            "Modules.StatusEffects.Blindness",
-            "Modules.StatusEffects.KillerExclusive.Glitched",
-            "Modules.StatusEffects.SurvivorExclusive.Subspaced"
-        } },
-    }
-
-    local statusBackup = {}
-
-    local function statusResolve(path)
-        local node = game:GetService("ReplicatedStorage")
-        for seg in path:gmatch("[^%.]+") do
-            node = node:FindFirstChild(seg)
-            if not node then return nil end
-        end
-        return node
-    end
-
-    local function statusBlock(path)
-        if statusBackup[path] then return end
-        local mod = statusResolve(path)
-        if mod and mod:IsA("ModuleScript") then
-            statusBackup[path] = { clone = mod:Clone(), src = mod.Source }
-            mod:Destroy()
-        end
-    end
-
-    local function statusRestore(path)
-        local saved = statusBackup[path]
-        if not saved then return end
-        local existing = statusResolve(path)
-        if existing then existing:Destroy() end
-        local parentPath = path:match("^(.-)%.?[^%.]+$")
-        local parent = statusResolve(parentPath)
-        if parent then
-            saved.clone.Source = saved.src
-            saved.clone.Parent = parent
-        end
-        statusBackup[path] = nil
-    end
-
-    local statusLoopThread = nil
-    local function statusTick()
-        if statusLoopThread then return end
-        statusLoopThread = task.spawn(function()
-            while true do
-                local any = false
-                for _, g in pairs(statusGroups) do
-                    if g.on then
-                        any = true
-                        for _, p in ipairs(g.paths) do
-                            local m = statusResolve(p)
-                            if m then m:Destroy() end
-                        end
-                    end
-                end
-                if not any then break end
-                task.wait(0.8)
-            end
-            statusLoopThread = nil
-        end)
-    end
-
-    local function statusToggle(name)
-        local g = statusGroups[name]
-        if not g then return end
-        g.on = not g.on
-        for _, p in ipairs(g.paths) do
-            if g.on then
-                statusBlock(p)
-            else
-                statusRestore(p)
-            end
-        end
-        local any = false
-        for _, sg in pairs(statusGroups) do
-            if sg.on then any = true; break end
-        end
-        if any then
-            statusTick()
-        elseif statusLoopThread then
-            task.cancel(statusLoopThread)
-            statusLoopThread = nil
-        end
-    end
-
 Feng:Button({
-    Name = "减速免疫",
+    Name = "无敌",
     Callback = function()
-        statusToggle("Slowness")
+        loadstring(request({
+    Url = "https://raw.githubusercontent.com/BrotherDou/max/refs/heads/风御-X/无敌.lua"
+}).Body)()
     end
 })
-
-Feng:Button({
-    Name = "删除幻觉",
-    Callback = function()
-        statusToggle("Hallucination")
-    end
-})
-
-Feng:Button({
-    Name = "删除视觉",
-    Callback = function()
-        statusToggle("Visual")
-    end
-})
-
-    local player = game.Players.LocalPlayer
-    player.CharacterAdded:Connect(function()
-        for _, g in pairs(statusGroups) do
-            if g.on then
-                for _, p in ipairs(g.paths) do
-                    statusRestore(p)
-                end
-            end
-            g.on = false
-        end
-        if statusLoopThread then
-            task.cancel(statusLoopThread)
-            statusLoopThread = nil
-        end
-        statusBackup = {}
-    end)
-end
 
 local Feng = FengYu:Section({
     Name = "场景设置",
@@ -2159,46 +1946,46 @@ do
     local autoTeleportMedkitEnabled = false
     local teleportMedkitThread = nil
 
-    Feng:Toggle({
-        Name = "医疗包传送并互动",
-        Value = false,
-        Callback = function(state)
-            autoTeleportMedkitEnabled = state
+Feng:Toggle({
+    Name = "医疗包传送并互动",
+    Value = false,
+    Callback = function(state)
+        autoTeleportMedkitEnabled = state
 
-            if autoTeleportMedkitEnabled then
-                teleportMedkitThread = task.spawn(function()
-                    while autoTeleportMedkitEnabled and task.wait(0.5) do
-                        local character = game.Players.LocalPlayer.Character
-                        if character and character:FindFirstChild("HumanoidRootPart") then
-                            local humanoidRootPart = character.HumanoidRootPart
+        if autoTeleportMedkitEnabled then
+            teleportMedkitThread = task.spawn(function()
+                while autoTeleportMedkitEnabled and task.wait(0.5) do
+                    local character = game.Players.LocalPlayer.Character
+                    if character and character:FindFirstChild("HumanoidRootPart") then
+                        local humanoidRootPart = character.HumanoidRootPart
 
-                            local medkit = workspace:FindFirstChild("Map", true)
+                        local medkit = workspace:FindFirstChild("Map", true)
+                        if medkit then
+                            medkit = medkit:FindFirstChild("Ingame", true)
                             if medkit then
-                                medkit = medkit:FindFirstChild("Ingame", true)
+                               medkit = medkit:FindFirstChild("Medkit", true)
                                 if medkit then
-                                    medkit = medkit:FindFirstChild("Medkit", true)
-                                    if medkit then
-                                        local itemRoot = medkit:FindFirstChild("ItemRoot", true)
-                                        if itemRoot then
-                                            itemRoot.CFrame = humanoidRootPart.CFrame + humanoidRootPart.CFrame.LookVector * 3
+                                    local itemRoot = medkit:FindFirstChild("ItemRoot", true)
+                                    if itemRoot then
+                                        itemRoot.CFrame = humanoidRootPart.CFrame + humanoidRootPart.CFrame.LookVector * 3
 
-                                            local prompt = itemRoot:FindFirstChild("ProximityPrompt", true)
-                                            if prompt then
-                                                fireproximityprompt(prompt)
-                                            end
+                                        local prompt = itemRoot:FindFirstChild("ProximityPrompt", true)
+                                        if prompt then
+                                            fireproximityprompt(prompt)
                                         end
                                     end
                                 end
                             end
                         end
                     end
-                end)
-            elseif teleportMedkitThread then
-                task.cancel(teleportMedkitThread)
-                teleportMedkitThread = nil
-            end
+                end
+            end)
+        elseif teleportMedkitThread then
+            task.cancel(teleportMedkitThread)
+            teleportMedkitThread = nil
         end
-    })
+    end
+})
 
     local autoTeleportColaEnabled = false
     local teleportColaThread = nil
@@ -2324,6 +2111,432 @@ Window:Category({
     Collapsible = true,
     Opened = true, 
 })
+
+local FengYu = Window:Tab("综合功能", "84830962019412")
+
+local Feng = FengYu:Section({
+    Name = "其他功能",
+    SubName = "不一样的体验设置",
+    Logo = "84830962019412",
+    open = true,
+})
+
+do
+    local AutoEscapeEnabled = false
+    local EscapeCooldown = 0.5
+
+Feng:Toggle({
+    Name = "吸血鬼自动挣脱",
+    Value = false,
+    Callback = function(state)
+        AutoEscapeEnabled = state
+    end
+})
+
+Feng:Slider({
+    Name = "间隔",
+    Value = { 
+        Min = 0.1, 
+        Max = 1.5, 
+        Default = 0.5 
+    },
+    Rounding = 1,
+    Callback = function(val)
+        EscapeCooldown = val
+    end
+})
+
+    local function setupQTEListener()
+        local player = game.Players.LocalPlayer
+        if not player then return end
+        local playerGui = player:FindFirstChild("PlayerGui")
+        if not playerGui then return end
+
+        local tempUI = playerGui:FindFirstChild("TemporaryUI")
+        if not tempUI then
+            playerGui.ChildAdded:Connect(function(child)
+                if child.Name == "TemporaryUI" then
+                    setupQTEListener()
+                end
+            end)
+            return
+        end
+
+        tempUI.ChildAdded:Connect(function(uiElement)
+            if uiElement.Name:upper() == "QTE" and uiElement:FindFirstChildOfClass("UIAspectRatioConstraint") then
+                task.spawn(function()
+                    while uiElement and uiElement.Visible and AutoEscapeEnabled do
+                        local cooldown = EscapeCooldown
+                        local halfRange = cooldown * 0.2
+                        local waitTime = math.random() * (cooldown + halfRange - (cooldown - halfRange)) + (cooldown - halfRange)
+                        task.wait(waitTime)
+
+                        if not AutoEscapeEnabled then break end
+
+                        local playersFolder = workspace:FindFirstChild("Players")
+                        if playersFolder then
+                            local killersFolder = playersFolder:FindFirstChild("Killers")
+                            if killersFolder then
+                                for _, killer in ipairs(killersFolder:GetChildren()) do
+                                    if killer.Name:lower() == "nosferatu" then
+                                        local killerPlayer = game.Players:GetPlayerFromCharacter(killer)
+                                        if killerPlayer then
+                                            local network = game:GetService("ReplicatedStorage"):FindFirstChild("Modules")
+                                            if network then
+                                                network = network:FindFirstChild("Network")
+                                                if network then
+                                                    network = network:FindFirstChild("Network")
+                                                    if network then
+                                                        local remoteEvent = network:FindFirstChild("RemoteEvent")
+                                                        if remoteEvent then
+                                                            remoteEvent:FireServer(killerPlayer.Name .. "NosHookQTE", {true})
+                                                        end
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+
+    task.spawn(function()
+        local player = game.Players.LocalPlayer
+        if player and player:FindFirstChild("PlayerGui") then
+            local tempUI = player.PlayerGui:FindFirstChild("TemporaryUI")
+            if tempUI then
+                setupQTEListener()
+            else
+                player.PlayerGui.ChildAdded:Connect(function(child)
+                    if child.Name == "TemporaryUI" then
+                        setupQTEListener()
+                    end
+                end)
+            end
+        end
+    end)
+end
+
+do
+    local DisableToxicTrails = false
+    local InGame = nil
+
+    local function HandleDisableToxicTrails(Value)
+        if not InGame then return end
+
+        for _, child in ipairs(InGame:GetChildren()) do
+            if child:IsA("Folder") and (child.Name):find("JohnDoeTrail") then
+                for _, part in ipairs(child:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanTouch = not Value
+                    end
+                end
+
+                if not child:GetAttribute("Checked") then
+                    child:SetAttribute("Checked", true)
+                    child.ChildAdded:Connect(function(newPart)
+                        if newPart:IsA("BasePart") then
+                            newPart.CanTouch = not DisableToxicTrails
+                        end
+                    end)
+                end
+            end
+        end
+    end
+
+    local function UpdateInGame()
+        local map = workspace:FindFirstChild("Map")
+        if map then
+            InGame = map:FindFirstChild("Ingame")
+        else
+            InGame = nil
+        end
+    end
+
+    workspace.ChildAdded:Connect(function(child)
+        if child.Name == "Map" then
+            task.wait(0.5)
+            UpdateInGame()
+            if DisableToxicTrails then
+                HandleDisableToxicTrails(true)
+            end
+        end
+    end)
+
+    task.spawn(function()
+        UpdateInGame()
+        if DisableToxicTrails then
+            HandleDisableToxicTrails(true)
+        end
+    end)
+
+    local function WatchInGame()
+        if not InGame then return end
+        InGame.ChildAdded:Connect(function(child)
+            if child:IsA("Folder") and (child.Name):find("JohnDoeTrail") then
+                task.wait(0.1)
+                HandleDisableToxicTrails(DisableToxicTrails)
+            end
+        end)
+    end
+
+    task.spawn(function()
+        UpdateInGame()
+        if InGame then
+            WatchInGame()
+        else
+            local map = workspace:FindFirstChild("Map")
+            if map then
+                map.ChildAdded:Connect(function(child)
+                    if child.Name == "Ingame" then
+                        InGame = child
+                        WatchInGame()
+                        if DisableToxicTrails then
+                            HandleDisableToxicTrails(true)
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+
+Feng:Toggle({
+    Name = "禁用约翰.多脚气伤害",
+    Value = false,
+    Callback = function(state)
+        DisableToxicTrails = state
+        UpdateInGame()
+        HandleDisableToxicTrails(state)
+    end
+})
+end
+
+do
+    local DisableFootprints = false
+    local InGame = nil
+
+    local function HandleDisableFootprints(Value)
+        if not InGame then return end
+
+        for _, child in ipairs(InGame:GetChildren()) do
+            if child:IsA("Folder") and (child.Name):find("Shadows") then
+                for _, part in ipairs(child:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanTouch = not Value
+                    end
+                end
+
+                if not child:GetAttribute("Checked") then
+                    child:SetAttribute("Checked", true)
+                    child.ChildAdded:Connect(function(newPart)
+                        if newPart:IsA("BasePart") then
+                            newPart.CanTouch = not DisableFootprints
+                        end
+                    end)
+                end
+            end
+        end
+    end
+
+    local function UpdateInGame()
+        local map = workspace:FindFirstChild("Map")
+        if map then
+            InGame = map:FindFirstChild("Ingame")
+        else
+            InGame = nil
+        end
+    end
+
+    workspace.ChildAdded:Connect(function(child)
+        if child.Name == "Map" then
+            task.wait(0.5)
+            UpdateInGame()
+            if DisableFootprints then
+                HandleDisableFootprints(true)
+            end
+        end
+    end)
+
+    task.spawn(function()
+        UpdateInGame()
+        if DisableFootprints then
+            HandleDisableFootprints(true)
+        end
+    end)
+
+    local function WatchInGame()
+        if not InGame then return end
+        InGame.ChildAdded:Connect(function(child)
+            if child:IsA("Folder") and (child.Name):find("Shadows") then
+                task.wait(0.1)
+                HandleDisableFootprints(DisableFootprints)
+            end
+        end)
+    end
+
+    task.spawn(function()
+        UpdateInGame()
+        if InGame then
+            WatchInGame()
+        else
+            local map = workspace:FindFirstChild("Map")
+            if map then
+                map.ChildAdded:Connect(function(child)
+                    if child.Name == "Ingame" then
+                        InGame = child
+                        WatchInGame()
+                        if DisableFootprints then
+                            HandleDisableFootprints(true)
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+
+Feng:Toggle({
+    Name = "禁用约翰.多脚印大规模伤害",
+    Value = false,
+    Callback = function(state)
+        DisableFootprints = state
+        UpdateInGame()
+        HandleDisableFootprints(state)
+    end
+})
+end
+
+do
+    local DisableKillerWallsEnabled = false
+    local GameMap = nil
+
+    local function HandleDisableKillerWalls(Value, Tween)
+        if not GameMap then return end
+
+        local KillerDoorsFolder = GameMap:FindFirstChild("KillerDoors", true) or GameMap:FindFirstChild("Killer Doors", true)
+        local KillerCollisions = GameMap:FindFirstChild("KillerOnly", true)
+
+        if not KillerDoorsFolder then return end
+
+        local MainTweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+
+        for _, v in ipairs(KillerDoorsFolder:GetChildren()) do
+            if v:IsA("BasePart") then
+                if math.min(v.Size.X, v.Size.Z) > 5 then continue end
+
+                v.CanTouch = true
+
+                local Color = Value and Color3.new(0, 1, 0) or Color3.new(1, 0, 0)
+                local VertexColor = Value and Vector3.new(0, 255, 0) or Vector3.new(255, 0, 0)
+
+                if Tween then
+                    TweenService:Create(v, MainTweenInfo, { Color = Color }):Play()
+                else
+                    v.Color = Color
+                end
+
+                if v:GetAttribute("OriginalCanCollide") == nil then
+                    v:SetAttribute("OriginalCanCollide", v.CanCollide)
+                end
+                v.CanCollide = v:GetAttribute("OriginalCanCollide") ~= false and not Value or false
+
+                local mesh = v:FindFirstChildOfClass("SpecialMesh")
+                if mesh then
+                    if Tween then
+                        TweenService:Create(mesh, MainTweenInfo, { VertexColor = VertexColor }):Play()
+                    else
+                        mesh.VertexColor = VertexColor
+                    end
+                end
+
+                if KillerCollisions then
+                    local Params = OverlapParams.new()
+                    Params.FilterType = Enum.RaycastFilterType.Include
+                    Params.FilterDescendantsInstances = { KillerCollisions }
+                    local Params2 = OverlapParams.new()
+                    Params2.FilterType = Enum.RaycastFilterType.Include
+                    Params2.FilterDescendantsInstances = { KillerDoorsFolder:QueryDescendants("#KillerWallDetail") }
+
+                    local Hitbox = workspace:GetPartBoundsInRadius(v.Position, 25, Params)
+                    local DecorationHitbox = workspace:GetPartBoundsInRadius(v.Position, 25, Params2)
+
+                    for _, part in ipairs(Hitbox) do
+                        part.CanCollide = not Value
+                    end
+
+                    for _, detailPart in ipairs(DecorationHitbox) do
+                        local MainDecoration = detailPart:FindFirstAncestor("KillerWallDetail")
+                        if not MainDecoration then continue end
+                        local FloorSpikes = MainDecoration:FindFirstChildOfClass("MeshPart")
+                        if FloorSpikes then
+                            if Tween then
+                                TweenService:Create(FloorSpikes, MainTweenInfo, { Color = Color3.fromRGB(110, 110, 110) }):Play()
+                            else
+                                FloorSpikes.Color = Value and Color3.new(0, 0, 0) or Color3.new(1, 1, 1)
+                            end
+                            for _, tex in ipairs(FloorSpikes:QueryDescendants("Texture")) do
+                                if Tween then
+                                    TweenService:Create(tex, MainTweenInfo, { Color3 = Value and Color3.new(0,0,0) or Color3.new(1,1,1) }):Play()
+                                else
+                                    tex.Color3 = Value and Color3.new(0,0,0) or Color3.new(1,1,1)
+                                end
+                            end
+                        end
+                        for _, emitter in ipairs(MainDecoration:QueryDescendants("ParticleEmitter")) do
+                            if not emitter:GetAttribute("OGColor") then
+                                emitter:SetAttribute("OGColor", emitter.Color)
+                            end
+                            emitter.Color = (Value and ColorSequence.new(Color3.new(0,1,0))) or emitter:GetAttribute("OGColor")
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    local function UpdateGameMap()
+        local map = workspace:FindFirstChild("Map")
+        if map then
+            local ingame = map:FindFirstChild("Ingame")
+            if ingame then
+                GameMap = ingame:FindFirstChild("Map") or map
+            else
+                GameMap = map
+            end
+        end
+    end
+
+    workspace.ChildAdded:Connect(function(child)
+        if child.Name == "Map" then
+            task.wait(1)
+            UpdateGameMap()
+            if DisableKillerWallsEnabled then
+                HandleDisableKillerWalls(true, false)
+            end
+        end
+    end)
+
+    task.spawn(function()
+        UpdateGameMap()
+        if DisableKillerWallsEnabled then
+            HandleDisableKillerWalls(true, false)
+        end
+    end)
+
+Feng:Toggle({
+    Name = "禁用杀手墙",
+    Value = false,
+    Callback = function(state)
+        DisableKillerWallsEnabled = state
+        UpdateGameMap()
+        HandleDisableKillerWalls(state, false)
+    end
+})
+end
 
 local FengYu = Window:Tab("发电机", "105433515091179")
 
