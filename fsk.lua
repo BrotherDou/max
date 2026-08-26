@@ -78,8 +78,8 @@ local Feng = FengYu:Section({
 })
 
 Feng:Image({
-    Name = "[付费脚本落叶 pro]",
-    SubName = "脚本价格为10元",
+    Name = "[付费脚本落叶Pro]",
+    SubName = "脚本价格为15元",
     Description = {
         "此脚本已跟殺脚本合作", 
         "更多好玩的功能都在这里面", 
