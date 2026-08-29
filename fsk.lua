@@ -31,7 +31,7 @@ end
 
 local Window = library:CreateWindow({
     Name = "殺脚本┃被遗弃",
-    SubName = "由合作人风御 X制作的脚本",
+    SubName = "欢迎您体验",
     Keybind = Enum.KeyCode.RightShift,
     Logo = 93541172717831,
     Scene = 107675149559858,
@@ -66,31 +66,7 @@ Feng:Video({
 
 Feng:Paragraph({
     Name = "<font color='#ff6666'>★更新内容★</font>",
-    Content = "●- <u>幸存者区</u>新更新<font color='#57FF20'>综合功能</font>\n●- <u>通用区</u>新更新<font color='#57FF20'>无敌功能</font>"
-})
-
-local FengYu = Window:Tab("高级功能", "84830962019412")
-
-local Feng = FengYu:Section({
-    Name = "付费信息",
-    Logo = "84830962019412",
-    open = true
-})
-
-Feng:Image({
-    Name = "[付费脚本落叶Pro]",
-    SubName = "脚本价格为15元",
-    Description = {
-        "此脚本已跟殺脚本合作", 
-        "更多好玩的功能都在这里面", 
-        "[点击我获得QQ主群]"
-    },
-    Icon = "rbxassetid://84830962019412",
-    IconColor = Color3.fromRGB(255, 255, 255),
-    StrokeColor = Color3.fromRGB(85, 255, 0),
-    Callback = function()
-        setclipboard("961626866")
-    end
+    Content = "●- 重写两次背刺和反背刺\n●-杀手区新添加综合功能(杀死所有)和(斩首者约翰.多的格挡)"
 })
 
 local FengYu = Window:Tab("脚本名单", "84830962019412")
@@ -131,7 +107,7 @@ Feng:Social({
 Feng:Social({
     Name = "落叶脚本中心作者",
     SubName = "kr X",
-    SmlName = "活在被众人憎恨的世界，好过在被众人遗忘的世界",
+    SmlName = "这是干什么的",
     copy = "1826649340",
     Cbn = "复制QQ号",
     Logo = "rbxassetid://89985745713907"
@@ -908,426 +884,6 @@ Feng:Toggle({
     Callback = function(state)
         _env.Fullbright = state
         toggleLightingLoop(state)
-    end
-})
-end
-
-local FengYu = Window:Tab("娱乐区", "108446823535062")
-
-local Feng = FengYu:Section({
-    Name = "功夫熊猫🍋",
-    SubName = "兄弟停止黑客！",
-    Logo = "84830962019412",
-    open = true
-})
-
-Feng:Button({
-    Name = "动画播放器",
-    Callback = function()
-        loadstring(game:HttpGet('https://raw.githubusercontent.com/FengYu-X/FengYu-ui/refs/heads/mainTab/%E5%8A%A8%E7%94%BB%E6%92%AD%E6%94%BE%E5%99%A8.lua'))()
-    end
-})
-
-Feng:Toggle({
-    Name = "坐下",
-    Value = false,
-    Callback = function(state)
-        local player = game:GetService("Players").LocalPlayer
-        if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
-            player.Character:FindFirstChildOfClass("Humanoid").Sit = state
-        end
-    end
-})
-
-do
-    local refreshEnabled = false
-    local deathPosition = nil
-
-    local function onDied()
-        local player = game:GetService("Players").LocalPlayer
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            deathPosition = player.Character.HumanoidRootPart.CFrame
-        end
-    end
-
-    local function onCharacterAdded(newChar)
-        if refreshEnabled and deathPosition then
-            newChar:WaitForChild("HumanoidRootPart").CFrame = deathPosition
-        end
-    end
-
-    local player = game:GetService("Players").LocalPlayer
-    player.CharacterAdded:Connect(onCharacterAdded)
-    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
-        player.Character.Humanoid.Died:Connect(onDied)
-    end
-    player.CharacterAdded:Connect(function(char)
-        char:WaitForChild("Humanoid").Died:Connect(onDied)
-    end)
-
-Feng:Toggle({
-    Name = "刷新 (死亡后原地复活)",
-    Value = false,
-    Callback = function(state)
-        refreshEnabled = state
-    end
-})
-end
-
-do
-    local swimEnabled = false
-    local oldGravity = game:GetService("Workspace").Gravity
-    local swimHeartbeat = nil
-    local gravResetConn = nil
-    local player = game:GetService("Players").LocalPlayer
-
-    local function stopSwim()
-        if swimHeartbeat then
-            swimHeartbeat:Disconnect()
-            swimHeartbeat = nil
-        end
-        if gravResetConn then
-            gravResetConn:Disconnect()
-            gravResetConn = nil
-        end
-        game:GetService("Workspace").Gravity = oldGravity
-        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            for _, state in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
-                if state ~= Enum.HumanoidStateType.None then
-                    hum:SetStateEnabled(state, true)
-                end
-            end
-        end
-    end
-
-Feng:Toggle({
-    Name = "漂浮",
-    Value = false,
-    Callback = function(state)
-        if state then
-            if not player.Character then return end
-            local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            if not hum then return end
-
-            swimEnabled = true
-            oldGravity = game:GetService("Workspace").Gravity
-            game:GetService("Workspace").Gravity = 0
-
-            gravResetConn = hum.Died:Connect(function()
-                game:GetService("Workspace").Gravity = oldGravity
-            end)
-
-            for _, s in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
-                if s ~= Enum.HumanoidStateType.None and s ~= Enum.HumanoidStateType.Swimming then
-                    hum:SetStateEnabled(s, false)
-                end
-            end
-            hum:ChangeState(Enum.HumanoidStateType.Swimming)
-
-            swimHeartbeat = game:GetService("RunService").Heartbeat:Connect(function()
-                pcall(function()
-                    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp and hum then
-                        if hum.MoveDirection == Vector3.new() and not game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
-                            hrp.Velocity = Vector3.new()
-                        end
-                    end
-                end)
-            end)
-        else
-            stopSwim()
-        end
-    end
-})
-
-    player.CharacterAdded:Connect(function()
-        if swimEnabled then
-            swimEnabled = false
-            stopSwim()
-        end
-    end)
-end
-
-Feng:Button({
-    Name = "变成药丸宝宝",
-    Callback = function()
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-
-        if character then
-            repeat task.wait() until character:FindFirstChild("HumanoidRootPart") and character:FindFirstChild("Humanoid")
-
-            local limbs = {"Left Arm", "Right Arm", "Left Leg", "Right Leg"}
-            for _, limb in ipairs(limbs) do
-                local part = character:FindFirstChild(limb)
-                if part then
-                    part:Destroy()
-                end
-            end
-
-            local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-            if torso then
-                local mesh = torso:FindFirstChildOfClass("SpecialMesh")
-                if not mesh then
-                    mesh = Instance.new("SpecialMesh", torso)
-                end
-                mesh.MeshId = "rbxasset://fonts/head.mesh"
-                mesh.Scale = Vector3.new(1.4, 1.8, 1.4)
-            end
-        end
-    end
-})
-
-Feng:Button({
-    Name = "滑铲按钮",
-    Callback = function()
-        local vu727 = game.Players.LocalPlayer
-        local v728 = vu727:WaitForChild("PlayerGui")
-        local v729 = v728:FindFirstChild("ScreenGui")
-        if not v729 then
-            v729 = Instance.new("ScreenGui")
-            v729.Name = "ScreenGui"
-            v729.Parent = v728
-        end
-        local v730 = Instance.new("TextButton")
-        v730.Size = UDim2.new(0, 100, 0, 40)
-        v730.Position = UDim2.new(0.5, -50, 0.5, -20)
-        v730.Text = "滑铲"
-        v730.BackgroundColor3 = Color3.fromRGB(0, 119, 255)
-        v730.TextColor3 = Color3.fromRGB(255, 255, 255)
-        v730.Font = Enum.Font.GothamBold
-        v730.TextSize = 16
-        v730.BorderSizePixel = 0
-        v730.Parent = v729
-        v730.Draggable = true
-
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 8)
-        corner.Parent = v730
-
-        local stroke = Instance.new("UIStroke")
-        stroke.Thickness = 2
-        stroke.Color = Color3.fromRGB(0, 0, 0)
-        stroke.Parent = v730
-
-        v730.MouseEnter:Connect(function()
-            v730.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-        end)
-
-        v730.MouseLeave:Connect(function()
-            v730.BackgroundColor3 = Color3.fromRGB(0, 119, 255)
-        end)
-
-        v730.MouseButton1Click:Connect(function()
-            local v731 = vu727.Character or vu727.CharacterAdded:Wait()
-            local v732 = v731:WaitForChild("HumanoidRootPart")
-            local v733 = v731:WaitForChild("Humanoid")
-            local v734 = Instance.new("Animation")
-            v734.AnimationId = "rbxassetid://182749109"
-            local vu735 = v733:LoadAnimation(v734)
-            local v736 = vu735
-            vu735:Play()
-            local v737 = game:GetService("TweenService")
-            local v738 = v732.CFrame * CFrame.new(0, 0, -20)
-            local v739 = v737:Create(v732, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-                CFrame = v738
-            })
-            v739:Play()
-            v739.Completed:Connect(function()
-                vu735:Stop()
-            end)
-        end)
-    end
-})
-
-Feng:Button({
-    Name = "直升机",
-    Callback = function()
-        if game.Players.LocalPlayer.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 then
-            spawn(function()
-                local speaker = game.Players.LocalPlayer
-                local Anim = Instance.new("Animation")
-                Anim.AnimationId = "rbxassetid://27432686"
-                local bruh = game.Players.LocalPlayer.Character.Humanoid:LoadAnimation(Anim)
-                bruh:Play()
-                bruh:AdjustSpeed(0)
-                speaker.Character.Animate.Disabled = true
-                local hi = Instance.new("Sound")
-                hi.Name = "Sound"
-                hi.SoundId = ""
-                hi.Volume = 2
-                hi.Looped = true
-                hi.archivable = false
-                hi.Parent = game.Workspace
-                hi:Play()
-
-                local spinSpeed = 40
-                local Spin = Instance.new("BodyAngularVelocity")
-                Spin.Name = "Spinning"
-                Spin.Parent = game.Players.LocalPlayer.Character.HumanoidRootPart
-                Spin.MaxTorque = Vector3.new(0, math.huge, 0)
-                Spin.AngularVelocity = Vector3.new(0,spinSpeed,0)
-            end)
-        else
-            spawn(function()
-                local speaker = game.Players.LocalPlayer
-                local Anim = Instance.new("Animation")
-                Anim.AnimationId = "rbxassetid://507776043"
-                local bruh = game.Players.LocalPlayer.Character.Humanoid:LoadAnimation(Anim)
-                bruh:Play()
-                bruh:AdjustSpeed(0)
-                speaker.Character.Animate.Disabled = true
-                local hi = Instance.new("Sound")
-                hi.Name = "Sound"
-                hi.SoundId = "空"
-                hi.Volume = 2
-                hi.Looped = true
-                hi.archivable = false
-                hi.Parent = game.Workspace
-                hi:Play()
-
-                local spinSpeed = 40
-                local Spin = Instance.new("BodyAngularVelocity")
-                Spin.Name = "Spinning"
-                Spin.Parent = game.Players.LocalPlayer.Character.HumanoidRootPart
-                Spin.MaxTorque = Vector3.new(0, math.huge, 0)
-                Spin.AngularVelocity = Vector3.new(0,spinSpeed,0)
-            end)
-        end
-        local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
-        local u = game.Players.LocalPlayer
-        local urchar = u.Character
-
-        task.spawn(function()
-            qUp = Mouse.KeyUp:Connect(function(KEY)
-                if KEY == 'q' then
-                    urchar.Humanoid.HipHeight = urchar.Humanoid.HipHeight - 3
-                end
-            end)
-            eUp = Mouse.KeyUp:Connect(function(KEY)
-               if KEY == 'e' then
-                    urchar.Humanoid.HipHeight = urchar.Humanoid.HipHeight + 3
-                end
-            end)
-        end)
-    end
-})
-
-local Feng = FengYu:Section({
-    Name = "权限设置",
-    SubName = "未知的权限？",
-    Logo = "84830962019412",
-    open = true
-})
-
-Feng:Button({
-    Name = "解锁全部角色和皮肤",
-    Callback = function()
-        task.spawn(function()
-            local player = game.Players.LocalPlayer
-            local purchased = player:WaitForChild("PlayerData"):WaitForChild("Purchased")
-            
-            local killersFolder = purchased:FindFirstChild("Killers") or Instance.new("Folder", purchased)
-            killersFolder.Name = "Killers"
-            local survivorsFolder = purchased:FindFirstChild("Survivors") or Instance.new("Folder", purchased)
-            survivorsFolder.Name = "Survivors"
-            local skinsFolder = purchased:FindFirstChild("Skins") or Instance.new("Folder", purchased)
-            skinsFolder.Name = "Skins"
-
-            for _, killer in ipairs(game:GetService("ReplicatedStorage"):WaitForChild("Assets"):WaitForChild("Killers"):GetChildren()) do
-                if not killersFolder:FindFirstChild(killer.Name) then
-                    Instance.new("StringValue", killersFolder).Name = killer.Name
-                end
-            end
-            
-            for _, survivor in ipairs(game:GetService("ReplicatedStorage"):WaitForChild("Assets"):WaitForChild("Survivors"):GetChildren()) do
-                if not survivorsFolder:FindFirstChild(survivor.Name) then
-                    Instance.new("StringValue", survivorsFolder).Name = survivor.Name
-                end
-            end
-            
-            local skinsRoot = game:GetService("ReplicatedStorage"):WaitForChild("Assets"):WaitForChild("Skins")
-            for _, skin in ipairs(skinsRoot:GetDescendants()) do
-                if (skin:IsA("Folder") or skin:IsA("Model")) and not skinsFolder:FindFirstChild(skin.Name) then
-                    Instance.new("StringValue", skinsFolder).Name = skin.Name
-                end
-            end
-        end)
-    end
-})
-
-Feng:Button({
-    Name = "解锁所有动作",
-    Callback = function()
-        task.spawn(function()
-            local player = game.Players.LocalPlayer
-            local purchased = player:WaitForChild("PlayerData"):WaitForChild("Purchased")
-            
-            local emotesFolder = purchased:FindFirstChild("Emotes") or Instance.new("Folder", purchased)
-            emotesFolder.Name = "Emotes"
-            
-            local emotesAssets = game:GetService("ReplicatedStorage"):WaitForChild("Assets"):WaitForChild("Emotes")
-            for _, module in ipairs(emotesAssets:GetDescendants()) do
-                if module:IsA("ModuleScript") and not emotesFolder:FindFirstChild(module.Name) then
-                    Instance.new("StringValue", emotesFolder).Name = module.Name
-                end
-            end
-        end)
-    end
-})
-
-Feng:Button({
-    Name = "解锁VIP权限",
-    Callback = function()
-        local localPlayer = game.Players.LocalPlayer
-        localPlayer:SetAttribute("VIP", true)
-        
-        local pData = localPlayer:WaitForChild("PlayerData")
-        local vVal = pData:FindFirstChild("VIP")
-        if not vVal then
-            vVal = Instance.new("BoolValue")
-            vVal.Name = "VIP"
-            vVal.Parent = pData
-        end
-        vVal.Value = true
-    end
-})
-
-local Feng = FengYu:Section({
-    Name = "修改系统",
-    SubName = "视觉上获得VIP",
-    Logo = "84830962019412",
-    open = true
-})
-
-local statsFields = {
-    Money = "钱",
-    NetWorth = "净资产",
-    KillerChance = "杀手几率",
-    TimePlayed = "游玩时间",
-    KillerWins = "杀手胜利",
-    Kills = "击杀数",
-    SurvivorWins = "幸存者胜利",
-    ObjectivesCompleted = "任务完成数"
-}
-
-for statName, displayName in pairs(statsFields) 
-do
-Feng:Input({
-    Name = "设置 " .. displayName,
-    Placeholder = "输入数值",
-    Callback = function(value)
-        pcall(function()
-            local localPlayer = game.Players.LocalPlayer
-            local stats = localPlayer:FindFirstChild("PlayerData") and localPlayer.PlayerData:FindFirstChild("Stats")
-            if not stats then return end
-            local statObj = stats:FindFirstChild(statName, true)
-            if statObj and (statObj:IsA("NumberValue") or statObj:IsA("IntValue") or statObj:IsA("FloatValue")) then
-                local num = tonumber(value)
-                if num then statObj.Value = num end
-            end
-        end)
     end
 })
 end
@@ -2844,13 +2400,15 @@ local FengYu = Window:Tab("访客1337", "101150016240183")
 
 local Feng = FengYu:Section({
     Name = "访客1337",
-    SubName = "使用这股神秘力量惩罚别人",
+    SubName = "强大？",
     Logo = "101150016240183",
     open = true,
 })
 
 Feng:Button({
     Name = "格挡脚本",
+    Locked = true,
+    LockedTitle = "维护中",
     Callback = function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/BrotherDou/max/refs/heads/main/Auto.lua"))()
     end
@@ -3108,287 +2666,413 @@ local FengYu = Window:Tab("两次", "86434410365514")
 
 local Feng = FengYu:Section({
     Name = "两次",
-    SubName = "你喜欢蚊子吗？",
+    SubName = "蚊子来了！！！",
     Logo = "86434410365514",
     open = true,
 })
 
 do
+    local DEFAULT_PROXIMITY   = 8
+    local DEFAULT_DURATION    = 0.45
+    local BEHIND_DISTANCE     = 3.5
+    local CHECK_INTERVAL      = 0.05
+    local COOLDOWN            = 5
+    local LERP_SPEED          = 0.55
+    local BEHIND_CONE_DEGREES = 70
+    local REMOTE_FIRE_DELAY   = 0.0
+    local AIM_SNAP_DELAY      = 0.25
+    local DEBUG_LINE          = true
+
+    local isRunning     = true
+    local enabled       = false
+    local daggerEnabled = false
+    local rangeMode     = "Behind"
+    local backstabType  = "Lerp"
+    local proximity     = DEFAULT_PROXIMITY
+    local lastTrigger   = 0
+    local aimRefCount   = 0
+    local debugBeam     = nil
+
+    local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local Workspace = game:GetService("Workspace")
-    local Players = game:GetService("Players")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local LP = Players.LocalPlayer
+    local clientPlayer = Players.LocalPlayer
 
-    local NetworkEvent = ReplicatedStorage:FindFirstChild("Modules")
-        and ReplicatedStorage.Modules:FindFirstChild("Network")
-        and ReplicatedStorage.Modules.Network:FindFirstChild("Network")
-        and ReplicatedStorage.Modules.Network.Network:FindFirstChild("RemoteEvent")
-    if not NetworkEvent then
-        warn("[Two Time] NetworkEvent not found, features may not work.")
-        return
+    local function getCharacter()
+        return clientPlayer.Character or clientPlayer.CharacterAdded:Wait()
     end
 
-    local AdvancedCombat = {
-        TwoTimeEnabled      = false,
-        TwoTimeRange        = 15,
-        ShowTwoTimeVisual   = false,
-        BackstabAimMode     = "Body aim"
-    }
-
-    local TwoTimeSettings = {
-        DaggerAimEnabled    = false,
-        DaggerAimMode       = "Body aim",
-        DaggerAimRange      = 15
-    }
-
-    local lastDaggerCooldownVal = 0
-    local daggerAimEndTime      = 0
-    local lastTwoTimeUse        = 0
-    local isTwoTimeActive       = false
-
-    local twoTimeTriggerAnims = {
-        ["119434518007321"] = true,
-        ["115194624791339"] = true,
-        ["89448354637442"]  = true,
-        ["100725497418533"] = true,
-        ["107640065977686"] = true,
-        ["112902284724598"] = true,
-        ["106086955212611"] = true,
-        ["77119710693654"]  = true
-    }
-
-    local function FireRemoteAbility(abilityName)
-        pcall(function()
-            local args
-            if abilityName == "Block" then
-                args = { "UseActorAbility", { buffer.fromstring("\003\005\000\000\000Block") } }
-            else
-                args = { "UseActorAbility", { buffer.fromstring("\003\005\000\000\000" .. abilityName) } }
-            end
-            NetworkEvent:FireServer(unpack(args))
-        end)
+    local function getDaggerButton()
+        local pg = clientPlayer:FindFirstChild("PlayerGui")
+        if not pg then return nil end
+        local mainUI = pg:FindFirstChild("MainUI")
+        if not mainUI then return nil end
+        local container = mainUI:FindFirstChild("AbilityContainer")
+        if not container then return nil end
+        return container:FindFirstChild("Dagger")
     end
 
-    local function isFakeKiller(killerModel)
-        if not killerModel then return true end
-        local name = killerModel.Name
-        if name:match("^Fake") or name:match("Fake$") then return true end
+    local function getDaggerCooldown()
+        local btn = getDaggerButton()
+        if not btn then return nil end
+        return btn:FindFirstChild("CooldownTime") or btn:FindFirstChild("Cooldown") or
+               btn:FindFirstChildWhichIsA("NumberValue") or btn:FindFirstChildWhichIsA("StringValue") or
+               btn:FindFirstChild("CooldownLabel") or btn:FindFirstChild("Timer") or btn:FindFirstChild("CD")
+    end
+
+    local function readCooldownValue(cdObj)
+        if not cdObj then return nil end
+        if cdObj:IsA("NumberValue")  then return cdObj.Value end
+        if cdObj:IsA("StringValue")  then return tonumber(cdObj.Value) end
+        if cdObj:IsA("TextLabel") or cdObj:IsA("TextBox") then return tonumber(cdObj.Text) end
+        if type(cdObj.Value) == "number" then return cdObj.Value end
+        if type(cdObj.Value) == "string" then return tonumber(cdObj.Value) end
+        if cdObj.Text ~= nil             then return tonumber(cdObj.Text) end
+        return nil
+    end
+
+    local function getKillersFolder()
         local playersFolder = Workspace:FindFirstChild("Players")
-        local killersFolder = playersFolder and playersFolder:FindFirstChild("Killers")
-        if not killersFolder or not killerModel:IsDescendantOf(killersFolder) then return true end
-        return false
+        if not playersFolder then return nil end
+        return playersFolder:FindFirstChild("Killers")
     end
 
-    local CachedKillers = {}
-    task.spawn(function()
-        while true do
-            task.wait(0.25)
-            local playersFolder = Workspace:FindFirstChild("Players")
-            if playersFolder then
-                local kFolder = playersFolder:FindFirstChild("Killers")
-                if kFolder then
-                    local kList = {}
-                    for _, k in ipairs(kFolder:GetChildren()) do
-                        if not isFakeKiller(k) and k:GetAttribute("Username") then
-                            table.insert(kList, k)
-                        end
-                    end
-                    CachedKillers = kList
-                end
+    local function isValidKillerModel(model)
+        if not model then return false end
+        local hrp      = model:FindFirstChild("HumanoidRootPart")
+        local humanoid = model:FindFirstChildWhichIsA("Humanoid")
+        return hrp and humanoid and humanoid.Health and humanoid.Health > 0
+    end
+
+    local function tryActivateButton(btn)
+        if not btn then return false end
+        pcall(function() if btn.Activate then btn:Activate() end end)
+        local ok, conns = pcall(function()
+            if type(getconnections) == "function" and btn.MouseButton1Click then
+                return getconnections(btn.MouseButton1Click)
             end
-        end
-    end)
-
-    RunService.Heartbeat:Connect(function()
-        local myChar = LP.Character
-        if not myChar then return end
-        local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-        if not myRoot then return end
-
-        if not AdvancedCombat.TwoTimeEnabled then return end
-
-        pcall(function()
-            local abilityContainer = LP.PlayerGui:FindFirstChild("MainUI")
-                and LP.PlayerGui.MainUI:FindFirstChild("AbilityContainer")
-            local daggerFrame = abilityContainer and abilityContainer:FindFirstChild("Dagger")
-            if daggerFrame then
-                local cdTime = daggerFrame:FindFirstChild("CooldownTime")
-                local currentCD = (cdTime and cdTime.Visible and cdTime.Text ~= "")
-                    and tonumber(cdTime.Text) or 0
-                if currentCD > 0 and lastDaggerCooldownVal == 0 then
-                    daggerAimEndTime = tick() + 1.0
-                end
-                lastDaggerCooldownVal = currentCD
-            else
-                lastDaggerCooldownVal = 0
-            end
+            return nil
         end)
-
-        if TwoTimeSettings.DaggerAimEnabled and tick() < daggerAimEndTime then
-            local closestKiller = nil
-            local shortestDist = TwoTimeSettings.DaggerAimRange
-            for _, killerModel in ipairs(CachedKillers) do
-                if isFakeKiller(killerModel) or not killerModel:GetAttribute("Username") then continue end
-                local hrp = killerModel:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local dist = (hrp.Position - myRoot.Position).Magnitude
-                    if dist <= shortestDist then
-                        shortestDist = dist
-                        closestKiller = hrp
-                    end
-                end
-            end
-            if closestKiller then
-                local targetPos = closestKiller.Position
-                myRoot.CFrame = CFrame.lookAt(myRoot.Position, Vector3.new(targetPos.X, myRoot.Position.Y, targetPos.Z))
+        if ok and conns then
+            for _, conn in ipairs(conns) do
+                pcall(function()
+                    if conn.Function then conn.Function()
+                    elseif conn.func  then conn.func()
+                    elseif conn.Fire  then conn.Fire() end
+                end)
             end
         end
+        pcall(function() if btn.Activated then btn.Activated:Fire() end end)
+        return true
+    end
 
-        if lastDaggerCooldownVal <= 0 and not isTwoTimeActive then
-            local hum = myChar:FindFirstChildOfClass("Humanoid")
-            local animator = hum and hum:FindFirstChildOfClass("Animator")
-            local wantsToTwoTime = false
-            if animator then
-                for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-                    local id = tostring(track.Animation and track.Animation.AnimationId or ""):match("%d+")
-                    if id and twoTimeTriggerAnims[id] then
-                        wantsToTwoTime = true
-                        break
-                    end
-                end
+    local function setAutoRotate(value)
+        local char = clientPlayer.Character
+        if not char then return end
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        if hum then pcall(function() hum.AutoRotate = value end) end
+    end
+
+    local function isPlayerBehindKiller(hrp, khrp, dist)
+        if dist > proximity or dist < 0.01 then return false end
+        local toPlayer = (hrp.Position - khrp.Position).Unit
+        local killerBack = -khrp.CFrame.LookVector
+        local dot = toPlayer:Dot(killerBack)
+        local threshold = math.cos(math.rad(BEHIND_CONE_DEGREES))
+        return dot >= threshold
+    end
+
+    local function removeDebugLine()
+        if debugBeam then
+            pcall(function() debugBeam:Destroy() end)
+            debugBeam = nil
+        end
+    end
+
+    local function drawDebugLine(hrp, khrp, isValid)
+        if not DEBUG_LINE then removeDebugLine(); return end
+        pcall(function()
+            local att0 = hrp:FindFirstChild("__BSAtt0") or Instance.new("Attachment", hrp)
+            att0.Name = "__BSAtt0"
+            att0.Position = Vector3.zero
+
+            local att1 = khrp:FindFirstChild("__BSAtt1") or Instance.new("Attachment", khrp)
+            att1.Name = "__BSAtt1"
+            att1.Position = Vector3.zero
+
+            if not debugBeam then
+                local b = Instance.new("Beam")
+                b.Name           = "__BSBeam"
+                b.Attachment0    = att0
+                b.Attachment1    = att1
+                b.FaceCamera     = true
+                b.Width0         = 0.08
+                b.Width1         = 0.08
+                b.Segments       = 1
+                b.LightEmission  = 1
+                b.LightInfluence = 0
+                b.Parent         = hrp
+                debugBeam = b
             end
 
-            if wantsToTwoTime then
-                local closestKiller = nil
-                local shortestDist = AdvancedCombat.TwoTimeRange
-                for _, killerModel in ipairs(CachedKillers) do
-                    if isFakeKiller(killerModel) or not killerModel:GetAttribute("Username") then continue end
-                    local hrp = killerModel:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        local dist = (hrp.Position - myRoot.Position).Magnitude
-                        if dist <= shortestDist then
-                            shortestDist = dist
-                            closestKiller = hrp
+            debugBeam.Attachment0 = att0
+            debugBeam.Attachment1 = att1
+            debugBeam.Color = isValid
+                and ColorSequence.new(Color3.fromRGB(50, 220, 100))
+                or  ColorSequence.new(Color3.fromRGB(220, 80, 60))
+        end)
+    end
+
+    local function activateForKiller(killerModel, duration)
+        if not killerModel or not isRunning then return end
+        local char     = getCharacter()
+        local humanoid = char and char:FindFirstChildWhichIsA("Humanoid")
+        local hrp      = char and char:FindFirstChild("HumanoidRootPart")
+        local khrp     = killerModel:FindFirstChild("HumanoidRootPart")
+        if not humanoid or not hrp or not khrp then return end
+
+        aimRefCount = aimRefCount + 1
+        if aimRefCount == 1 then pcall(function() humanoid.AutoRotate = false end) end
+
+        local function finishAiming()
+            aimRefCount = math.max(0, aimRefCount - 1)
+            if aimRefCount == 0 then setAutoRotate(true) end
+        end
+
+        local function computeBehindCFrame()
+            local kCF       = khrp.CFrame
+            local behindPos = kCF.Position - (kCF.LookVector.Unit * BEHIND_DISTANCE)
+            behindPos = Vector3.new(behindPos.X, kCF.Position.Y, behindPos.Z)
+            return CFrame.new(behindPos, behindPos + kCF.LookVector.Unit)
+        end
+
+        if backstabType == "Lerp" then
+            local t0 = os.clock()
+            local conn
+            conn = RunService.Heartbeat:Connect(function()
+                if not isRunning or os.clock() - t0 >= duration then
+                    conn:Disconnect(); finishAiming(); return
+                end
+                if khrp and hrp then
+                    hrp.CFrame = hrp.CFrame:Lerp(computeBehindCFrame(), LERP_SPEED)
+                end
+            end)
+        elseif backstabType == "Teleport" then
+            pcall(function() hrp.CFrame = computeBehindCFrame() end)
+            task.delay(duration, finishAiming)
+        elseif backstabType == "Aim" then
+            local t0 = os.clock()
+            local conn
+            conn = RunService.Heartbeat:Connect(function()
+                if not isRunning or os.clock() - t0 >= duration then
+                    conn:Disconnect(); finishAiming(); return
+                end
+                if khrp and hrp then
+                    local stabTarget = khrp.Position + khrp.CFrame.LookVector * 2
+                    local aimPos     = Vector3.new(stabTarget.X, hrp.Position.Y, stabTarget.Z)
+                    hrp.CFrame = hrp.CFrame:Lerp(
+                        CFrame.new(hrp.Position, aimPos),
+                        LERP_SPEED * 1.8
+                    )
+                end
+            end)
+        end
+    end
+
+    task.spawn(function()
+        while isRunning do
+            task.wait(CHECK_INTERVAL)
+            if not enabled or not isRunning then continue end
+
+            local killersFolder = getKillersFolder()
+            if not killersFolder then continue end
+
+            local char = getCharacter()
+            local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+            if not hrp then continue end
+
+            local triggered = false
+
+            for _, killer in pairs(killersFolder:GetChildren()) do
+                if triggered then break end
+                if not isValidKillerModel(killer) then continue end
+
+                local khrp = killer:FindFirstChild("HumanoidRootPart")
+                local dist = (khrp.Position - hrp.Position).Magnitude
+
+                if dist <= proximity then
+                    local valid = isPlayerBehindKiller(hrp, khrp, dist)
+                    drawDebugLine(hrp, khrp, valid)
+
+                    if valid and rangeMode ~= "Around" and os.clock() - lastTrigger >= COOLDOWN then
+                        local cdNum = readCooldownValue(getDaggerCooldown())
+                        if not (cdNum and cdNum > 0.1) then
+                            lastTrigger = os.clock()
+                            triggered   = true
+
+                            task.spawn(function()
+                                activateForKiller(killer, DEFAULT_DURATION)
+                                if REMOTE_FIRE_DELAY > 0 then task.wait(REMOTE_FIRE_DELAY) end
+                                if daggerEnabled then tryActivateButton(getDaggerButton()) end
+                                if AIM_SNAP_DELAY > 0 then
+                                    task.wait(AIM_SNAP_DELAY)
+                                    if not isRunning then return end
+                                    local khrp2 = killer:FindFirstChild("HumanoidRootPart")
+                                    local char2 = getCharacter()
+                                    local hrp2  = char2 and char2:FindFirstChild("HumanoidRootPart")
+                                    if khrp2 and hrp2 then
+                                        local behindPos = khrp2.CFrame.Position - (khrp2.CFrame.LookVector.Unit * BEHIND_DISTANCE)
+                                        behindPos = Vector3.new(behindPos.X, hrp2.Position.Y, behindPos.Z)
+                                        hrp2.CFrame = CFrame.new(behindPos, behindPos + khrp2.CFrame.LookVector.Unit)
+                                    end
+                                end
+                            end)
                         end
                     end
+                elseif DEBUG_LINE then
+                    removeDebugLine()
                 end
 
-                if closestKiller then
-                    isTwoTimeActive = true
-                    lastTwoTimeUse = tick()
-                    task.spawn(function()
-                        local endTime = tick() + 0.27
-                        local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                        local savedPosition = myHrp and myHrp.Position
-                        if myHrp then myHrp.Anchored = true end
-
-                        while tick() < endTime do
-                            if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                                and closestKiller and closestKiller.Parent then
-                                local lp_hum = LP.Character:FindFirstChildOfClass("Humanoid")
-                                if lp_hum and lp_hum.FloorMaterial ~= Enum.Material.Air then
-                                    local currentDist = (closestKiller.Position - LP.Character.HumanoidRootPart.Position).Magnitude
-                                    local offsetDist = currentDist
-                                    if offsetDist > 9 then offsetDist = 2.25 end
-                                    local newCFrame = closestKiller.CFrame * CFrame.new(0, 0, offsetDist)
-                                    LP.Character.HumanoidRootPart.CFrame = CFrame.lookAt(newCFrame.Position, closestKiller.Position)
+                if rangeMode == "Around" and dist <= proximity and os.clock() - lastTrigger >= COOLDOWN and not triggered then
+                    local cdNum = readCooldownValue(getDaggerCooldown())
+                    if not (cdNum and cdNum > 0.1) then
+                        lastTrigger = os.clock()
+                        triggered   = true
+                        task.spawn(function()
+                            activateForKiller(killer, DEFAULT_DURATION)
+                            if REMOTE_FIRE_DELAY > 0 then task.wait(REMOTE_FIRE_DELAY) end
+                            if daggerEnabled then tryActivateButton(getDaggerButton()) end
+                            if AIM_SNAP_DELAY > 0 then
+                                task.wait(AIM_SNAP_DELAY)
+                                if not isRunning then return end
+                                local khrp2 = killer:FindFirstChild("HumanoidRootPart")
+                                local char2 = getCharacter()
+                                local hrp2  = char2 and char2:FindFirstChild("HumanoidRootPart")
+                                if khrp2 and hrp2 then
+                                    local tp = Vector3.new(khrp2.Position.X, hrp2.Position.Y, khrp2.Position.Z)
+                                    hrp2.CFrame = CFrame.new(hrp2.Position, tp)
                                 end
                             end
-                            task.wait()
-                        end
-
-                        if myHrp then
-                            myHrp.Anchored = false
-                            if savedPosition and (myHrp.Position - savedPosition).Magnitude > 20 then
-                                myHrp.CFrame = CFrame.new(savedPosition)
-                            end
-                        end
-                        isTwoTimeActive = false
-                    end)
+                        end)
+                    end
                 end
             end
-        end
-    end)
 
-    local rangeCircle = nil
-    RunService.RenderStepped:Connect(function()
-        if not AdvancedCombat.ShowTwoTimeVisual then
-            if rangeCircle then rangeCircle.Visible = false end
-            return
-        end
-        local char = LP.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            if not rangeCircle or not rangeCircle.Parent then
-                rangeCircle = Instance.new("CylinderHandleAdornment")
-                rangeCircle.Name = "TwoTimeRangeVis"
-                rangeCircle.Adornee = hrp
-                rangeCircle.Height = 0.05
-                rangeCircle.Color3 = Color3.fromRGB(0, 255, 0)
-                rangeCircle.Transparency = 0.6
-                rangeCircle.ZIndex = 1
-                rangeCircle.Parent = hrp
-            end
-            rangeCircle.Radius = AdvancedCombat.TwoTimeRange
-            rangeCircle.InnerRadius = math.max(0, AdvancedCombat.TwoTimeRange - 0.5)
-            rangeCircle.CFrame = CFrame.new(0, -hrp.Size.Y / 2, 0) * CFrame.Angles(math.rad(90), 0, 0)
-            rangeCircle.Visible = true
-        elseif rangeCircle then
-            rangeCircle.Visible = false
+            if not triggered then removeDebugLine() end
         end
     end)
 
 Feng:Toggle({
-    Name = "启用两次背刺",
+    Name = "自动背刺",
     Value = false,
-    Callback = function(v)
-        AdvancedCombat.TwoTimeEnabled = v
+    Callback = function(state) 
+        enabled = state 
     end
 })
 
-Feng:Slider({
-    Name = "背刺半径",
-    Value = { 
-        Min = 5, 
-        Max = 20, 
-        Default = 15 
+Feng:Toggle({
+    Name = "背刺时自动攻击",
+    Value = false,
+    Callback = function(state) 
+        daggerEnabled = state 
+    end
+})
+
+Feng:Toggle({
+    Name = "调试射线",
+    Value = true,
+    Callback = function(state)
+      DEBUG_LINE = state
+      if not state then 
+          removeDebugLine() 
+      end
+    end
+})
+
+Feng:Dropdown({
+    Name = "背刺类型",
+    Values = {
+        "缓动位移", 
+        "瞬移", 
+        "锁定瞄准"
     },
-    Callback = function(v)
-        AdvancedCombat.TwoTimeRange = v
+    Value   = "缓动位移",
+    Callback = function(value)
+      if value == "缓动位移" then backstabType = "Lerp"
+          elseif value == "瞬移" then backstabType = "Teleport"
+          elseif value == "锁定瞄准" then backstabType = "Aim" 
+      end
     end
 })
 
-Feng:Toggle({
-    Name = "显示背刺范围圈",
-    Value = false,
-    Callback = function(v)
-        AdvancedCombat.ShowTwoTimeVisual = v
-        if not v and rangeCircle then
-            rangeCircle.Visible = false
-        end
-    end
-})
-
-Feng:Divider()
-
-Feng:Toggle({
-    Name = "匕首瞄准",
-    Value = false,
-    Callback = function(v)
-        TwoTimeSettings.DaggerAimEnabled = v
+Feng:Dropdown({
+    Name = "范围模式",
+    Values = {"全范围", "背后"},
+    Value = "背后",
+    Callback = function(value)
+      if value == "全范围" then rangeMode = "Around"
+         else rangeMode = "Behind" 
+      end
     end
 })
 
 Feng:Slider({
-    Name = "匕首瞄准半径",
+    Name = "检测范围",
     Value = { 
         Min = 1, 
         Max = 30, 
-            Default = 15 
+        Default = DEFAULT_PROXIMITY 
     },
-    Callback = function(v)
-        TwoTimeSettings.DaggerAimRange = v
+    Callback = function(value)
+        proximity = value 
+    end
+})
+
+Feng:Slider({
+    Name = "背后瞬移距离",
+    Value = { 
+        Min = 0.5, 
+        Max = 10, 
+        Default = BEHIND_DISTANCE 
+    },
+    Callback = function(value)
+        BEHIND_DISTANCE = value 
+    end
+})
+
+Feng:Slider({
+    Name = "背后判定锥角",
+    Value = { 
+        Min = 10, 
+        Max = 180, 
+        Default = BEHIND_CONE_DEGREES 
+    },
+    Callback = function(value)
+        BEHIND_CONE_DEGREES = value 
+    end
+})
+
+Feng:Slider({
+    Name = "远程触发延迟",
+    Value = { 
+        Min = 0.00, 
+        Max = 0.50, 
+        Default = REMOTE_FIRE_DELAY 
+    },
+    Callback = function(value)
+        REMOTE_FIRE_DELAY = value 
+    end
+})
+
+Feng:Slider({
+    Name = "瞄准硬锁定延迟",
+    Value = { 
+        Min = 0.00, 
+        Max = 0.30, 
+        Default = AIM_SNAP_DELAY 
+    },
+    Callback = function(value)
+        AIM_SNAP_DELAY = value 
     end
 })
 end
@@ -3589,6 +3273,759 @@ Window:Category({
     Collapsible = true,
     Opened = true, 
 })
+
+local FengYu = Window:Tab("综合功能", "84830962019412")
+
+local Feng = FengYu:Section({
+    Name = "杀手综合功能",
+    SubName = "就像疯子一样",
+    Logo = "84830962019412",
+    open = true,
+})
+
+do
+    local killAllActive = false
+    local currentTarget = nil
+    local killAllConnection = nil
+    local teleportMode = "circle"
+    local teleportAngle = 0
+    local teleportRadius = 3
+    local lastTargetRefresh = 0
+    local TARGET_REFRESH_INTERVAL = 0.5
+    local lastTeleportTime = 0
+    local TELEPORT_COOLDOWN = 0.15
+    local lastAttackTime = 0
+    local ATTACK_COOLDOWN = 0.25
+
+    local cachedSurvivorsFolder = nil
+    local cachedKillerRoot = nil
+
+    local function findNearestSurvivor()
+        local survivorsFolder = workspace:FindFirstChild("Players")
+        if survivorsFolder then
+            cachedSurvivorsFolder = survivorsFolder:FindFirstChild("Survivors")
+        end
+        if not cachedSurvivorsFolder then return nil end
+
+        local nearest = nil
+        local minDistance = math.huge
+        local localPlayer = game.Players.LocalPlayer
+        local localChar = localPlayer.Character
+        if not localChar then return nil end
+
+        if not cachedKillerRoot or not cachedKillerRoot.Parent then
+            cachedKillerRoot = localChar:FindFirstChild("HumanoidRootPart")
+            if not cachedKillerRoot then return nil end
+        end
+
+        local survivors = cachedSurvivorsFolder:GetChildren()
+        for i = 1, #survivors do
+            local survivor = survivors[i]
+            if survivor:IsA("Model") then
+                local humanoid = survivor:FindFirstChild("Humanoid")
+                local rootPart = survivor:FindFirstChild("HumanoidRootPart")
+                if humanoid and humanoid.Health > 0 and rootPart then
+                    local delta = rootPart.Position - cachedKillerRoot.Position
+                    local distanceSquared = delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z
+                    if distanceSquared < minDistance then
+                        minDistance = distanceSquared
+                        nearest = survivor
+                    end
+                end
+            end
+        end
+        return nearest, math.sqrt(minDistance)
+    end
+
+    local function teleportToTarget(target)
+        if not target or not target:FindFirstChild("HumanoidRootPart") then
+            return false
+        end
+
+        local localPlayer = game.Players.LocalPlayer
+        local localChar = localPlayer.Character
+        if not localChar then return false end
+
+        if not cachedKillerRoot or not cachedKillerRoot.Parent then
+            cachedKillerRoot = localChar:FindFirstChild("HumanoidRootPart")
+            if not cachedKillerRoot then return false end
+        end
+
+        local targetRoot = target.HumanoidRootPart
+        local targetPos = targetRoot.Position
+        local targetLook = targetRoot.CFrame.LookVector
+        local teleportPos
+
+        if teleportMode == "circle" then
+            teleportAngle = teleportAngle + 0.2
+            local x = math.cos(teleportAngle) * teleportRadius
+            local z = math.sin(teleportAngle) * teleportRadius
+            teleportPos = targetPos + Vector3.new(x, 2, z)
+        else
+            teleportPos = targetPos + (targetLook * 2) + Vector3.new(0, 1.5, 0)
+        end
+
+        if not teleportPos then
+            teleportPos = targetPos
+        end
+
+        cachedKillerRoot.CFrame = CFrame.new(teleportPos)
+
+        if teleportMode == "front" then
+            cachedKillerRoot.CFrame = CFrame.lookAt(teleportPos, targetPos)
+        end
+        return true
+    end
+
+    local function getAttackSkill()
+        local localChar = game.Players.LocalPlayer.Character
+        if not localChar then return "Slash" end
+        local charName = localChar.Name
+        if charName == "Noli" then
+            return "Stab"
+        elseif charName == "c001kidd" then
+            return "Punch"
+        else
+            return "Slash"
+        end
+    end
+
+    local function useAttackSkill()
+        local currentTime = tick()
+        if currentTime - lastAttackTime < ATTACK_COOLDOWN then
+            return
+        end
+        local skillName = getAttackSkill()
+        lastAttackTime = currentTime
+        pcall(function()
+            game.ReplicatedStorage.Modules.Network.RemoteEvent:FireServer("UseActorAbility", skillName)
+        end)
+    end
+
+    local function startKillAll()
+        if killAllActive then return end
+        killAllActive = true
+        currentTarget = nil
+        lastTargetRefresh = 0
+        cachedSurvivorsFolder = nil
+        cachedKillerRoot = nil
+
+        killAllConnection = task.spawn(function()
+            local lastFrameTime = tick()
+            while killAllActive do
+                local currentTime = tick()
+                local deltaTime = currentTime - lastFrameTime
+                lastFrameTime = currentTime
+
+                if currentTime - lastTargetRefresh >= TARGET_REFRESH_INTERVAL then
+                    if currentTarget and (not currentTarget.Parent or
+                       not currentTarget:FindFirstChild("Humanoid") or
+                       currentTarget.Humanoid.Health <= 0) then
+                        currentTarget = nil
+                    end
+                    if not currentTarget then
+                        currentTarget = findNearestSurvivor()
+                    end
+                    lastTargetRefresh = currentTime
+                end
+
+                if not currentTarget then
+                    task.wait(0.1)
+                else
+                    if currentTime - lastTeleportTime >= TELEPORT_COOLDOWN then
+                        local teleportSuccess = teleportToTarget(currentTarget)
+                        if teleportSuccess then
+                            lastTeleportTime = currentTime
+                        end
+                    end
+
+                    useAttackSkill()
+
+                    local waitTime = (teleportMode == "circle") and 0.05 or 0.1
+                    if deltaTime < waitTime then
+                        task.wait(waitTime - deltaTime)
+                    end
+                end
+            end
+        end)
+    end
+
+    local function stopKillAll()
+        killAllActive = false
+        if killAllConnection then
+            task.cancel(killAllConnection)
+            killAllConnection = nil
+        end
+        currentTarget = nil
+        teleportAngle = 0
+        cachedSurvivorsFolder = nil
+        cachedKillerRoot = nil
+    end
+
+    game.Players.LocalPlayer.CharacterAdded:Connect(function()
+        if killAllActive then
+            stopKillAll()
+        end
+    end)
+
+Feng:Toggle({
+    Name = "杀死所有",
+    Value = false,
+    Callback = function(state)
+        if state then
+            startKillAll()
+        else
+            stopKillAll()
+        end
+    end
+})
+
+Feng:Dropdown({
+    Name = "选择模式",
+    Values = { "转圈", "前方" },
+    Value = "转圈",
+    Callback = function(option)
+        if option == "转圈" then
+            teleportMode = "circle"
+        elseif option == "前方" then
+            teleportMode = "front"
+        end
+    end
+})
+end
+
+local Feng = FengYu:Section({
+    Name = "斩首者格挡",
+    SubName = "设置",
+    Logo = "84830962019412",
+    open = true,
+})
+
+do
+    local autoBlockTriggerAnims = {
+        ["124269076578545"] = true, ["126830014841198"] = true, ["18885909645"] = true, ["105458270463374"] = true,
+        ["83829782357897"] = true, ["125403313786645"] = true, ["118298475669935"] = true, ["82113744478546"] = true,
+        ["70371667919898"] = true, ["109230267448394"] = true, ["139835501033932"] = true, ["109667959938617"] = true,
+        ["126681776859538"] = true, ["129976080405072"] = true, ["121293883585738"] = true, ["81639435858902"] = true,
+        ["137314737492715"] = true, ["92173139187970"] = true, ["122709416391"] = true, ["879895330952"] = true,
+        ["84069821282466"] = true, ["114506382930939"] = true, ["88451353906104"] = true, ["133066252175737"] = true,
+        ["99824350842479"] = true, ["132243194360714"] = true, ["91341171001824"] = true, ["120307951"] = true,
+        ["124705663396411"] = true, ["122709416391891"] = true, ["106131211773069"] = true, ["81299297965542"] = true,
+        ["138938529389204"] = true, ["70483423693126"] = true, ["114126519127454"] = true, ["130958529065375"] = true,
+        ["81803417290685"] = true, ["90620531468240"] = true, ["82691533602949"] = true, ["99829427721752"] = true,
+        ["93366464803829"] = true, ["107032335460679"] = true, ["112135252467978"] = true, ["77375846492436"] = true,
+        ["127245564598429"] = true
+    }
+
+    local autoBlockTriggerSounds = {
+        ["89004992452376"] = true, ["80516583309685"] = true, ["102228729296384"] = true, ["140242176732868"] = true,
+        ["112809109188560"] = true, ["136323728355613"] = true, ["115026634746636"] = true, ["84116622032112"] = true,
+        ["108907358619313"] = true, ["127793641088496"] = true, ["86174610237192"] = true, ["95079963655241"] = true,
+        ["101199185291628"] = true, ["119942598489800"] = true, ["84307400688050"] = true, ["113037804008732"] = true,
+        ["105200830849301"] = true, ["75330693422988"] = true, ["82221759983649"] = true, ["81702359653578"] = true,
+        ["108610718831698"] = true, ["112395455254818"] = true, ["109431876587852"] = true, ["109348678063422"] = true,
+        ["85853080745515"] = true, ["12222216"] = true, ["105840448036441"] = true, ["114742322778642"] = true,
+        ["119583605486352"] = true, ["79980897195554"] = true, ["71805956520207"] = true, ["79391273191671"] = true,
+        ["101553872555606"] = true, ["101698569375359"] = true, ["106300477136129"] = true, ["116581754553533"] = true,
+        ["117231507259853"] = true, ["119089145505438"] = true, ["121954639447247"] = true, ["125213046326879"] = true,
+        ["131406927389838"] = true, ["71834552297085"] = true, ["805165833096"] = true, ["823363523051"] = true,
+        ["120059928759346"] = true, ["82336352305186"] = true, ["104625283622511"] = true, ["126131675979001"] = true,
+        ["98675142200448"] = true
+    }
+
+    local localPunchAnims = {"87259391926321", "86096387000557", "86709774283672", "140703210927645", "136007065400978", "129843313690921", "108807732150251", "138040001965654"}
+    local oneShootAnims = {"73921036900313", "111384272984267", "90499469533503", "133491532453922"}
+    local twoTimeTriggerAnims = {
+        ["119434518007321"] = true, ["115194624791339"] = true, ["89448354637442"] = true,
+        ["100725497418533"] = true, ["107640065977686"] = true, ["112902284724598"] = true,
+        ["106086955212611"] = true, ["77119710693654"] = true
+    }
+
+    local slasherParryAnims = {
+        ["121255898612475"] = true, ["105614318732282"] = true, ["116618003477002"] = true,
+        ["111918351126361"] = true, ["98031287364865"] = true, ["119462383658044"] = true,
+        ["87259391926321"] = true, ["86096387000557"] = true, ["86709774283672"] = true,
+        ["140703210927645"] = true, ["136007065400978"] = true, ["129843313690921"] = true,
+        ["108807732150251"] = true, ["138040001965654"] = true,
+        ["119434518007321"] = true, ["115194624791339"] = true, ["89448354637442"] = true,
+        ["100725497418533"] = true, ["107640065977686"] = true, ["112902284724598"] = true,
+        ["106086955212611"] = true, ["77119710693654"] = true,
+        ["73921036900313"] = true, ["111384272984267"] = true, ["90499469533503"] = true,
+        ["133491532453922"] = true
+    }
+
+    local slasherParrySounds = {
+        ["92445809840331"] = true, ["140258770018994"] = true, ["12222225"] = true,
+        ["118234760889759"] = true, ["81714228693719"] = true, ["114486446625838"] = true,
+        ["5569523548"] = true, ["119675090901934"] = true, ["132596270805754"] = true,
+        ["127324570265084"] = true, ["129249459631748"] = true, ["12222208"] = true,
+        ["104632327472742"] = true, ["110279274881589"] = true
+    }
+
+    local SlasherSettings = {
+        EnragedEnabled   = false,
+        EnragedMultiplier = 2.111,
+        AutoParry        = false,
+        ParryRange       = 15,
+        ParryVis         = false,
+    }
+
+    local LP = game:GetService("Players").LocalPlayer
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RemoteEvent = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("Network"):WaitForChild("RemoteEvent")
+
+    local function isFakeKiller(killerModel)
+        if not killerModel then return true end
+        local name = killerModel.Name
+        if string.match(name, "^Fake") or string.match(name, "Fake$") then return true end
+        local workspacePlayers = Workspace:FindFirstChild("Players")
+        local killersFolder = workspacePlayers and workspacePlayers:FindFirstChild("Killers")
+        if not killersFolder or not killerModel:IsDescendantOf(killersFolder) then return true end
+        return false
+    end
+
+    local function ShouldParry(myRoot, parryRange)
+        local shouldParry = false
+        local detectedAnim = "No"
+        local detectedSound = "No"
+        local inRange = "No"
+
+        local survivorsFolder = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Survivors")
+        if not survivorsFolder then return false, detectedAnim, detectedSound, inRange end
+
+        for _, survModel in ipairs(survivorsFolder:GetChildren()) do
+            local sHrp = survModel:FindFirstChild("HumanoidRootPart")
+            if sHrp then
+                local dist = (sHrp.Position - myRoot.Position).Magnitude
+                if dist <= (parryRange * 3) then
+                    local isStandardRange = dist <= parryRange
+                    local hum = survModel:FindFirstChildOfClass("Humanoid")
+                    local animator = hum and hum:FindFirstChildOfClass("Animator")
+
+                    if animator then
+                        for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                            local id = tostring(track.Animation and track.Animation.AnimationId or ""):match("%d+")
+                            if id then
+                                local isGuestPunch = table.find(localPunchAnims, id)
+                                local isOneShoot = table.find(oneShootAnims, id)
+                                local validDist = false
+                                if isOneShoot and dist <= (parryRange * 3) then
+                                    validDist = true
+                                elseif (slasherParryAnims[id] or autoBlockTriggerAnims[id] or isGuestPunch or twoTimeTriggerAnims[id]) and isStandardRange then
+                                    validDist = true
+                                end
+                                if validDist then
+                                    inRange = "Yes"
+                                    if track.TimePosition <= 0.45 then
+                                        shouldParry = true
+                                        detectedAnim = "Yes"
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    if (not shouldParry or detectedSound == "No") and isStandardRange then
+                        for _, desc in ipairs(survModel:GetDescendants()) do
+                            if desc:IsA("Sound") and desc.IsPlaying then
+                                local soundId = tostring(desc.SoundId):match("%d+")
+                                if soundId and (autoBlockTriggerSounds[soundId] or slasherParrySounds[soundId]) then
+                                    inRange = "Yes"
+                                    shouldParry = true
+                                    detectedSound = "Yes"
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            if shouldParry then break end
+        end
+
+        return shouldParry, detectedAnim, detectedSound, inRange
+    end
+
+    local function getSlasherRagingPaceCD()
+        local playerGui = LP:FindFirstChild("PlayerGui")
+        local mainUI = playerGui and playerGui:FindFirstChild("MainUI")
+        local abilityContainer = mainUI and mainUI:FindFirstChild("AbilityContainer")
+        local ragingPaceFrame = abilityContainer and abilityContainer:FindFirstChild("RagingPace")
+        if ragingPaceFrame then
+            local cdTime = ragingPaceFrame:FindFirstChild("CooldownTime")
+            if cdTime and cdTime.Visible and cdTime.Text ~= "" then
+                return tonumber(cdTime.Text) or 0
+            end
+        end
+        return 0
+    end
+
+    local lastSlasherParryTime = 0
+
+    task.spawn(function()
+        while task.wait(0.1) do
+            if not SlasherSettings.EnragedEnabled then
+                continue
+            end
+
+            local playersFolder = Workspace:FindFirstChild("Players")
+            if playersFolder then
+                local killersFolder = playersFolder:FindFirstChild("Killers")
+                if killersFolder then
+                    for _, killerModel in ipairs(killersFolder:GetChildren()) do
+                        if isFakeKiller(killerModel) then continue end
+                        local speedMults = killerModel:FindFirstChild("SpeedMultipliers")
+                        if speedMults then
+                            local enraged = speedMults:FindFirstChild("ENRAGED")
+                            if enraged then
+                                enraged.Value = SlasherSettings.EnragedMultiplier
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    RunService.Heartbeat:Connect(function()
+        local myChar = LP.Character
+        if not myChar then return end
+        local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+
+        local isSlasher = string.find(myChar.Name, "Slasher") and myChar:GetAttribute("Username") == LP.Name
+        if not isSlasher then return end
+
+        if SlasherSettings.AutoParry then
+            local shouldParry = ShouldParry(myRoot, SlasherSettings.ParryRange)
+            local cd = getSlasherRagingPaceCD()
+            local now = tick()
+            if shouldParry and cd <= 0 and (now - lastSlasherParryTime) >= 0.5 then
+                lastSlasherParryTime = now
+                task.spawn(function()
+                    local args = {
+                        "UseActorAbility",
+                        { buffer.fromstring("\003\n\000\000\000RagingPace") }
+                    }
+                    for i = 1, 3 do
+                        pcall(function() RemoteEvent:FireServer(unpack(args)) end)
+                    end
+                    task.wait(0.05)
+                    for i = 1, 3 do
+                        pcall(function() RemoteEvent:FireServer(unpack(args)) end)
+                    end
+                end)
+            end
+        end
+
+        local parryVis = myRoot:FindFirstChild("ParryRangeVis")
+        if SlasherSettings.ParryVis then
+            if not parryVis then
+                parryVis = Instance.new("CylinderHandleAdornment")
+                parryVis.Name = "ParryRangeVis"
+                parryVis.Adornee = myRoot
+                parryVis.Height = 0.05
+                parryVis.Color3 = Color3.fromRGB(255, 140, 0)
+                parryVis.Transparency = 0.6
+                parryVis.ZIndex = 1
+                parryVis.Parent = myRoot
+            end
+            parryVis.Radius = SlasherSettings.ParryRange
+            parryVis.InnerRadius = math.max(0, SlasherSettings.ParryRange - 0.5)
+            parryVis.CFrame = CFrame.new(0, -myRoot.Size.Y/2, 0) * CFrame.Angles(math.rad(90), 0, 0)
+            parryVis.Visible = true
+        elseif parryVis then
+            parryVis.Visible = false
+        end
+    end)
+
+Feng:Toggle({
+    Name = "狂暴速度",
+    Value = SlasherSettings.EnragedEnabled,
+    Callback = function(val)
+        SlasherSettings.EnragedEnabled = val
+    end
+})
+
+Feng:Slider({
+    Name = "狂暴速度倍率",
+    Value = {
+        Min = 2.111,
+        Max = 3.4,
+        Default = SlasherSettings.EnragedMultiplier,
+    },
+    Rounding = 3,
+    Callback = function(val)
+        SlasherSettings.EnragedMultiplier = val
+    end
+})
+
+Feng:Toggle({
+    Name = "自动狂暴速度格挡",
+    Value = SlasherSettings.AutoParry,
+    Callback = function(val)
+        SlasherSettings.AutoParry = val
+    end
+})
+
+Feng:Slider({
+    Name = "狂暴速度格挡范围",
+    Value = {
+        Min = 5,
+        Max = 40,
+        Default = SlasherSettings.ParryRange,
+    },
+    Callback = function(val)
+        SlasherSettings.ParryRange = val
+    end
+})
+
+Feng:Toggle({
+    Name = "(可视化)狂暴速度范围",
+    Value = SlasherSettings.ParryVis,
+    Callback = function(val)
+        SlasherSettings.ParryVis = val
+    end
+})
+end
+
+local Feng = FengYu:Section({
+    Name = "约翰.多格挡",
+    SubName = "设置",
+    Logo = "84830962019412",
+    open = true,
+})
+
+do
+    local autoBlockTriggerAnims = {
+        ["124269076578545"] = true, ["126830014841198"] = true, ["18885909645"] = true, ["105458270463374"] = true,
+        ["83829782357897"] = true, ["125403313786645"] = true, ["118298475669935"] = true, ["82113744478546"] = true,
+        ["70371667919898"] = true, ["109230267448394"] = true, ["139835501033932"] = true, ["109667959938617"] = true,
+        ["126681776859538"] = true, ["129976080405072"] = true, ["121293883585738"] = true, ["81639435858902"] = true,
+        ["137314737492715"] = true, ["92173139187970"] = true, ["122709416391"] = true, ["879895330952"] = true,
+        ["84069821282466"] = true, ["114506382930939"] = true, ["88451353906104"] = true, ["133066252175737"] = true,
+        ["99824350842479"] = true, ["132243194360714"] = true, ["91341171001824"] = true, ["120307951"] = true,
+        ["124705663396411"] = true, ["122709416391891"] = true, ["106131211773069"] = true, ["81299297965542"] = true,
+        ["138938529389204"] = true, ["70483423693126"] = true, ["114126519127454"] = true, ["130958529065375"] = true,
+        ["81803417290685"] = true, ["90620531468240"] = true, ["82691533602949"] = true, ["99829427721752"] = true,
+        ["93366464803829"] = true, ["107032335460679"] = true, ["112135252467978"] = true, ["77375846492436"] = true,
+        ["127245564598429"] = true
+    }
+
+    local autoBlockTriggerSounds = {
+        ["89004992452376"] = true, ["80516583309685"] = true, ["102228729296384"] = true, ["140242176732868"] = true,
+        ["112809109188560"] = true, ["136323728355613"] = true, ["115026634746636"] = true, ["84116622032112"] = true,
+        ["108907358619313"] = true, ["127793641088496"] = true, ["86174610237192"] = true, ["95079963655241"] = true,
+        ["101199185291628"] = true, ["119942598489800"] = true, ["84307400688050"] = true, ["113037804008732"] = true,
+        ["105200830849301"] = true, ["75330693422988"] = true, ["82221759983649"] = true, ["81702359653578"] = true,
+        ["108610718831698"] = true, ["112395455254818"] = true, ["109431876587852"] = true, ["109348678063422"] = true,
+        ["85853080745515"] = true, ["12222216"] = true, ["105840448036441"] = true, ["114742322778642"] = true,
+        ["119583605486352"] = true, ["79980897195554"] = true, ["71805956520207"] = true, ["79391273191671"] = true,
+        ["101553872555606"] = true, ["101698569375359"] = true, ["106300477136129"] = true, ["116581754553533"] = true,
+        ["117231507259853"] = true, ["119089145505438"] = true, ["121954639447247"] = true, ["125213046326879"] = true,
+        ["131406927389838"] = true, ["71834552297085"] = true, ["805165833096"] = true, ["823363523051"] = true,
+        ["120059928759346"] = true, ["82336352305186"] = true, ["104625283622511"] = true, ["126131675979001"] = true,
+        ["98675142200448"] = true
+    }
+
+    local localPunchAnims = {"87259391926321", "86096387000557", "86709774283672", "140703210927645", "136007065400978", "129843313690921", "108807732150251", "138040001965654"}
+    local oneShootAnims = {"73921036900313", "111384272984267", "90499469533503", "133491532453922"}
+    local twoTimeTriggerAnims = {
+        ["119434518007321"] = true, ["115194624791339"] = true, ["89448354637442"] = true,
+        ["100725497418533"] = true, ["107640065977686"] = true, ["112902284724598"] = true,
+        ["106086955212611"] = true, ["77119710693654"] = true
+    }
+
+    local slasherParryAnims = {
+        ["121255898612475"] = true, ["105614318732282"] = true, ["116618003477002"] = true,
+        ["111918351126361"] = true, ["98031287364865"] = true, ["119462383658044"] = true,
+        ["87259391926321"] = true, ["86096387000557"] = true, ["86709774283672"] = true,
+        ["140703210927645"] = true, ["136007065400978"] = true, ["129843313690921"] = true,
+        ["108807732150251"] = true, ["138040001965654"] = true,
+        ["119434518007321"] = true, ["115194624791339"] = true, ["89448354637442"] = true,
+        ["100725497418533"] = true, ["107640065977686"] = true, ["112902284724598"] = true,
+        ["106086955212611"] = true, ["77119710693654"] = true,
+        ["73921036900313"] = true, ["111384272984267"] = true, ["90499469533503"] = true,
+        ["133491532453922"] = true
+    }
+
+    local slasherParrySounds = {
+        ["92445809840331"] = true, ["140258770018994"] = true, ["12222225"] = true,
+        ["118234760889759"] = true, ["81714228693719"] = true, ["114486446625838"] = true,
+        ["5569523548"] = true, ["119675090901934"] = true, ["132596270805754"] = true,
+        ["127324570265084"] = true, ["129249459631748"] = true, ["12222208"] = true,
+        ["104632327472742"] = true, ["110279274881589"] = true
+    }
+
+    local JohnDoeSettings = {
+        AutoParry   = false,
+        ParryRange  = 15,
+        ParryVis    = false,
+    }
+
+    local LP = game:GetService("Players").LocalPlayer
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RemoteEvent = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("Network"):WaitForChild("RemoteEvent")
+
+    local function isFakeKiller(killerModel)
+        if not killerModel then return true end
+        local name = killerModel.Name
+        if string.match(name, "^Fake") or string.match(name, "Fake$") then return true end
+        local workspacePlayers = Workspace:FindFirstChild("Players")
+        local killersFolder = workspacePlayers and workspacePlayers:FindFirstChild("Killers")
+        if not killersFolder or not killerModel:IsDescendantOf(killersFolder) then return true end
+        return false
+    end
+
+    local function ShouldParry(myRoot, parryRange)
+        local shouldParry = false
+        local survivorsFolder = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Survivors")
+        if not survivorsFolder then return false end
+
+        for _, survModel in ipairs(survivorsFolder:GetChildren()) do
+            local sHrp = survModel:FindFirstChild("HumanoidRootPart")
+            if sHrp then
+                local dist = (sHrp.Position - myRoot.Position).Magnitude
+                if dist <= (parryRange * 3) then
+                    local isStandardRange = dist <= parryRange
+                    local hum = survModel:FindFirstChildOfClass("Humanoid")
+                    local animator = hum and hum:FindFirstChildOfClass("Animator")
+
+                    if animator then
+                        for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                            local id = tostring(track.Animation and track.Animation.AnimationId or ""):match("%d+")
+                            if id then
+                                local isGuestPunch = table.find(localPunchAnims, id)
+                                local isOneShoot = table.find(oneShootAnims, id)
+                                local validDist = false
+                                if isOneShoot and dist <= (parryRange * 3) then
+                                    validDist = true
+                                elseif (slasherParryAnims[id] or autoBlockTriggerAnims[id] or isGuestPunch or twoTimeTriggerAnims[id]) and isStandardRange then
+                                    validDist = true
+                                end
+                                if validDist then
+                                    if track.TimePosition <= 0.45 then
+                                        shouldParry = true
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    if not shouldParry and isStandardRange then
+                        for _, desc in ipairs(survModel:GetDescendants()) do
+                            if desc:IsA("Sound") and desc.IsPlaying then
+                                local soundId = tostring(desc.SoundId):match("%d+")
+                                if soundId and (autoBlockTriggerSounds[soundId] or slasherParrySounds[soundId]) then
+                                    shouldParry = true
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            if shouldParry then break end
+        end
+        return shouldParry
+    end
+
+    local function get404ErrorCooldown()
+        local playerGui = LP:FindFirstChild("PlayerGui")
+        local mainUI = playerGui and playerGui:FindFirstChild("MainUI")
+        local abilityContainer = mainUI and mainUI:FindFirstChild("AbilityContainer")
+        local errorFrame = abilityContainer and abilityContainer:FindFirstChild("404Error")
+        if errorFrame then
+            local cdTime = errorFrame:FindFirstChild("CooldownTime")
+            if cdTime and cdTime.Visible and cdTime.Text ~= "" then
+                return tonumber(cdTime.Text) or 0
+            end
+        end
+        return 0
+    end
+
+    local lastJohnDoeParryTime = 0
+
+    RunService.Heartbeat:Connect(function()
+        local myChar = LP.Character
+        if not myChar then return end
+        local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+
+        local isJohnDoe = string.find(myChar.Name, "JohnDoe") and myChar:GetAttribute("Username") == LP.Name
+        if not isJohnDoe then return end
+
+        if JohnDoeSettings.AutoParry then
+            local shouldParry = ShouldParry(myRoot, JohnDoeSettings.ParryRange)
+            local cd = get404ErrorCooldown()
+            local now = tick()
+            if shouldParry and cd <= 0 and (now - lastJohnDoeParryTime) >= 2.0 then
+                lastJohnDoeParryTime = now
+                task.spawn(function()
+                    local args = {
+                        "UseActorAbility",
+                        { buffer.fromstring("\003\b\000\000\000404Error") }
+                    }
+                    pcall(function() RemoteEvent:FireServer(unpack(args)) end)
+                end)
+            end
+        end
+
+        local jdParryVis = myRoot:FindFirstChild("JDParryRangeVis")
+        if JohnDoeSettings.ParryVis then
+            if not jdParryVis then
+                jdParryVis = Instance.new("CylinderHandleAdornment")
+                jdParryVis.Name = "JDParryRangeVis"
+                jdParryVis.Adornee = myRoot
+                jdParryVis.Height = 0.05
+                jdParryVis.Color3 = Color3.fromRGB(0, 0, 0)
+                jdParryVis.Transparency = 0.6
+                jdParryVis.ZIndex = 1
+                jdParryVis.Parent = myRoot
+            end
+            jdParryVis.Radius = JohnDoeSettings.ParryRange
+            jdParryVis.InnerRadius = math.max(0, JohnDoeSettings.ParryRange - 0.5)
+            jdParryVis.CFrame = CFrame.new(0, -myRoot.Size.Y/2, 0) * CFrame.Angles(math.rad(90), 0, 0)
+            jdParryVis.Visible = true
+        elseif jdParryVis then
+            jdParryVis.Visible = false
+        end
+    end)
+
+Feng:Toggle({
+    Name = "自动404错误格挡",
+    Value = JohnDoeSettings.AutoParry,
+    Callback = function(val)
+        JohnDoeSettings.AutoParry = val
+    end
+})
+
+Feng:Slider({
+    Name = "404错误格挡范围",
+    Value = {
+        Min = 5,
+        Max = 40,
+        Default = JohnDoeSettings.ParryRange,
+    },
+    Callback = function(val)
+        JohnDoeSettings.ParryRange = val
+    end
+})
+
+Feng:Toggle({
+    Name = "(可视化)404错误范围",
+    Value = JohnDoeSettings.ParryVis,
+    Callback = function(val)
+        JohnDoeSettings.ParryVis = val
+    end
+})
+end
 
 local FengYu = Window:Tab("碰撞修改区", "84082094395188")
 
@@ -4228,18 +4665,14 @@ do
         locked = false,
         soundConn = nil,
         scanThread = nil,
-        rings = {},
+        rings = {}
     }
-
-    local absTriggerSounds = {
-        ["86710781315432"] = true,
-        ["99820161736138"] = true,
-    }
+    local absTriggerSounds = { ["86710781315432"] = true, ["99820161736138"] = true }
 
     local function absAddRing(model)
-        local hrp = model:FindFirstChild("HumanoidRootPart")
-        if not hrp or abs.rings[model] then return end
         pcall(function()
+            local hrp = model:FindFirstChild("HumanoidRootPart")
+            if not hrp or abs.rings[model] then return end
             local ring = Instance.new("Part")
             ring.Name = "AbsRing"
             ring.Shape = Enum.PartType.Cylinder
@@ -4260,25 +4693,27 @@ do
     end
 
     local function absRemoveRing(model)
-        local r = abs.rings[model]
-        if r then
-            pcall(function() r:Destroy() end)
+        pcall(function()
+            local r = abs.rings[model]
+            if r then r:Destroy() end
             abs.rings[model] = nil
-        end
+        end)
     end
 
     local function absResizeRings()
-        for _, r in pairs(abs.rings) do
-            if r and r.Parent then
-                r.Size = Vector3.new(0.1, abs.range * 2, abs.range * 2)
+        pcall(function()
+            for _, r in pairs(abs.rings) do
+                if r and r.Parent then
+                    r.Size = Vector3.new(0.1, abs.range * 2, abs.range * 2)
+                end
             end
-        end
+        end)
     end
 
     local function absCleanRings()
-        for m in pairs(abs.rings) do
-            absRemoveRing(m)
-        end
+        pcall(function()
+            for m in pairs(abs.rings) do absRemoveRing(m) end
+        end)
     end
 
     local function absFindTwoTime()
@@ -4292,40 +4727,47 @@ do
     end
 
     local function absTrigger()
-        if abs.locked then return end
-        local plr = game.Players.LocalPlayer
-        if not plr then return end
-        local ch = plr.Character
-        local myRoot = ch and ch:FindFirstChild("HumanoidRootPart")
-        if not myRoot then return end
-        local ttModel = absFindTwoTime()
-        if not ttModel then return end
-        local ttRoot = ttModel:FindFirstChild("HumanoidRootPart")
-        if not ttRoot then return end
-        if (myRoot.Position - ttRoot.Position).Magnitude > abs.range then return end
-        abs.locked = true
-        task.spawn(function()
-            local deadline = tick() + abs.duration
-            while tick() < deadline do
-                if not abs.on then break end
-                local plr2 = game.Players.LocalPlayer
-                if not plr2 then break end
-                local ch2 = plr2.Character
-                local r2 = ch2 and ch2:FindFirstChild("HumanoidRootPart")
-                if not r2 or not ttRoot.Parent then break end
-                r2.CFrame = CFrame.lookAt(r2.Position, Vector3.new(ttRoot.Position.X, r2.Position.Y, ttRoot.Position.Z))
-                task.wait()
-            end
-            abs.locked = false
+        pcall(function()
+            if abs.locked then return end
+            local lp = game.Players.LocalPlayer
+            local ch = lp.Character
+            local myRoot = ch and ch:FindFirstChild("HumanoidRootPart")
+            if not myRoot then return end
+            local ttModel = absFindTwoTime()
+            if not ttModel then return end
+            local ttRoot = ttModel:FindFirstChild("HumanoidRootPart")
+            if not ttRoot then return end
+            if (myRoot.Position - ttRoot.Position).Magnitude > abs.range then return end
+            abs.locked = true
+            task.spawn(function()
+                local deadline = tick() + abs.duration
+                while tick() < deadline do
+                    if not abs.on then break end
+                    local ch2 = lp.Character
+                    local r2 = ch2 and ch2:FindFirstChild("HumanoidRootPart")
+                    if not r2 or not ttRoot.Parent then break end
+                    r2.CFrame = CFrame.lookAt(r2.Position, Vector3.new(ttRoot.Position.X, r2.Position.Y, ttRoot.Position.Z))
+                    game:GetService("RunService").RenderStepped:Wait()
+                end
+                abs.locked = false
+            end)
         end)
     end
 
     local function absHookSounds()
-        if abs.soundConn then abs.soundConn:Disconnect(); abs.soundConn = nil end
-        abs.soundConn = workspace.DescendantAdded:Connect(function(obj)
-            if not abs.on or not obj:IsA("Sound") then return end
-            local id = obj.SoundId:match("%d+")
-            if id and absTriggerSounds[id] then absTrigger() end
+        pcall(function()
+            if abs.soundConn then abs.soundConn:Disconnect(); abs.soundConn = nil end
+            local function checkSound(obj)
+                if not abs.on or not obj:IsA("Sound") then return end
+                local id = obj.SoundId:match("%d+")
+                if id and absTriggerSounds[id] then absTrigger() end
+            end
+            abs.soundConn = workspace.DescendantAdded:Connect(function(obj)
+                if obj:IsA("Sound") then
+                    checkSound(obj)
+                    obj:GetPropertyChangedSignal("SoundId"):Connect(function() checkSound(obj) end)
+                end
+            end)
         end)
     end
 
@@ -4333,17 +4775,19 @@ do
         if abs.scanThread then return end
         abs.scanThread = task.spawn(function()
             while abs.on do
-                local players = workspace:FindFirstChild("Players")
-                if players then
-                    for _, folder in ipairs(players:GetChildren()) do
-                        for _, model in ipairs(folder:GetChildren()) do
-                            if model.Name == "TwoTime" then absAddRing(model) end
+                pcall(function()
+                    local players = workspace:FindFirstChild("Players")
+                    if players then
+                        for _, folder in ipairs(players:GetChildren()) do
+                            for _, model in ipairs(folder:GetChildren()) do
+                                if model.Name == "TwoTime" then absAddRing(model) end
+                            end
                         end
                     end
-                end
-                for m in pairs(abs.rings) do
-                    if not m.Parent then absRemoveRing(m) end
-                end
+                    for m in pairs(abs.rings) do
+                        if not m.Parent then absRemoveRing(m) end
+                    end
+                end)
                 task.wait(1)
             end
             abs.scanThread = nil
@@ -4351,42 +4795,63 @@ do
     end
 
     local function absStart()
-        abs.on = true
-        absHookSounds()
-        absStartScan()
+        pcall(function()
+            absHookSounds()
+            absStartScan()
+        end)
     end
 
     local function absStop()
-        abs.on = false
-        if abs.soundConn then abs.soundConn:Disconnect(); abs.soundConn = nil end
-        if abs.scanThread then task.cancel(abs.scanThread); abs.scanThread = nil end
-        absCleanRings()
-        abs.locked = false
+        pcall(function()
+            abs.on = false
+            if abs.soundConn then
+                abs.soundConn:Disconnect()
+                abs.soundConn = nil
+            end
+            if abs.scanThread then
+                task.cancel(abs.scanThread)
+                abs.scanThread = nil
+            end
+            absCleanRings()
+            abs.locked = false
+        end)
     end
 
-    local function setupCharacterListener()
-        local plr = game.Players.LocalPlayer
-        if plr then
-            plr.CharacterAdded:Connect(function()
-                abs.locked = false
-                if abs.on then
-                    absStop()
-                    absStart()
+    local lp = game.Players.LocalPlayer
+    lp.CharacterAdded:Connect(function()
+        pcall(function()
+            abs.locked = false
+            if abs.on then absStart() end
+        end)
+    end)
+
+    task.spawn(function()
+        while true do
+            task.wait(10)
+            pcall(function()
+                local deadRings = {}
+                for model, ring in pairs(abs.rings) do
+                    if not model or not model.Parent or not ring or not ring.Parent then
+                        table.insert(deadRings, model)
+                    end
+                end
+                for _, model in ipairs(deadRings) do
+                    abs.rings[model] = nil
                 end
             end)
         end
-    end
-    setupCharacterListener()
+    end)
 
 Feng:Toggle({
-    Name = "启用反背刺",
-    Value = false,
-    Callback = function(on)
-        if on then
-            absStart()
-        else
-            absStop()
-        end
+    Name = "启用防背刺",
+    Value = abs.on,
+    Callback = function(state)
+        pcall(function()
+            abs.on = state
+            if state then absStart() else
+                absStop() 
+            end
+        end)
     end
 })
 
@@ -4397,9 +4862,11 @@ Feng:Slider({
         Max = 120, 
         Default = abs.range 
     },
-    Callback = function(v)
-        abs.range = v
-        absResizeRings()
+    Callback = function(value)
+        pcall(function()
+            abs.range = value
+            absResizeRings()
+        end)
     end
     })
 
@@ -4410,8 +4877,436 @@ Feng:Slider({
         Max = 5.0, 
         Default = abs.duration 
     },
-    Callback = function(v)
-        abs.duration = v
+    Callback = function(value)
+        pcall(function() 
+            abs.duration = value 
+        end)
+    end
+})
+end
+
+Window:Category({
+    Name = "娱乐项目",
+    Collapsible = true,
+    Opened = false, 
+})
+
+local FengYu = Window:Tab("娱乐区", "108446823535062")
+
+local Feng = FengYu:Section({
+    Name = "功夫熊猫🍋",
+    SubName = "兄弟停止黑客！",
+    Logo = "84830962019412",
+    open = true
+})
+
+Feng:Button({
+    Name = "动画播放器",
+    Callback = function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/FengYu-X/FengYu-ui/refs/heads/mainTab/%E5%8A%A8%E7%94%BB%E6%92%AD%E6%94%BE%E5%99%A8.lua'))()
+    end
+})
+
+Feng:Toggle({
+    Name = "坐下",
+    Value = false,
+    Callback = function(state)
+        local player = game:GetService("Players").LocalPlayer
+        if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+            player.Character:FindFirstChildOfClass("Humanoid").Sit = state
+        end
+    end
+})
+
+do
+    local refreshEnabled = false
+    local deathPosition = nil
+
+    local function onDied()
+        local player = game:GetService("Players").LocalPlayer
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            deathPosition = player.Character.HumanoidRootPart.CFrame
+        end
+    end
+
+    local function onCharacterAdded(newChar)
+        if refreshEnabled and deathPosition then
+            newChar:WaitForChild("HumanoidRootPart").CFrame = deathPosition
+        end
+    end
+
+    local player = game:GetService("Players").LocalPlayer
+    player.CharacterAdded:Connect(onCharacterAdded)
+    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+        player.Character.Humanoid.Died:Connect(onDied)
+    end
+    player.CharacterAdded:Connect(function(char)
+        char:WaitForChild("Humanoid").Died:Connect(onDied)
+    end)
+
+Feng:Toggle({
+    Name = "刷新 (死亡后原地复活)",
+    Value = false,
+    Callback = function(state)
+        refreshEnabled = state
+    end
+})
+end
+
+do
+    local swimEnabled = false
+    local oldGravity = game:GetService("Workspace").Gravity
+    local swimHeartbeat = nil
+    local gravResetConn = nil
+    local player = game:GetService("Players").LocalPlayer
+
+    local function stopSwim()
+        if swimHeartbeat then
+            swimHeartbeat:Disconnect()
+            swimHeartbeat = nil
+        end
+        if gravResetConn then
+            gravResetConn:Disconnect()
+            gravResetConn = nil
+        end
+        game:GetService("Workspace").Gravity = oldGravity
+        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            for _, state in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
+                if state ~= Enum.HumanoidStateType.None then
+                    hum:SetStateEnabled(state, true)
+                end
+            end
+        end
+    end
+
+Feng:Toggle({
+    Name = "漂浮",
+    Value = false,
+    Callback = function(state)
+        if state then
+            if not player.Character then return end
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
+            if not hum then return end
+
+            swimEnabled = true
+            oldGravity = game:GetService("Workspace").Gravity
+            game:GetService("Workspace").Gravity = 0
+
+            gravResetConn = hum.Died:Connect(function()
+                game:GetService("Workspace").Gravity = oldGravity
+            end)
+
+            for _, s in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
+                if s ~= Enum.HumanoidStateType.None and s ~= Enum.HumanoidStateType.Swimming then
+                    hum:SetStateEnabled(s, false)
+                end
+            end
+            hum:ChangeState(Enum.HumanoidStateType.Swimming)
+
+            swimHeartbeat = game:GetService("RunService").Heartbeat:Connect(function()
+                pcall(function()
+                    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp and hum then
+                        if hum.MoveDirection == Vector3.new() and not game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
+                            hrp.Velocity = Vector3.new()
+                        end
+                    end
+                end)
+            end)
+        else
+            stopSwim()
+        end
+    end
+})
+
+    player.CharacterAdded:Connect(function()
+        if swimEnabled then
+            swimEnabled = false
+            stopSwim()
+        end
+    end)
+end
+
+Feng:Button({
+    Name = "变成药丸宝宝",
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+
+        if character then
+            repeat task.wait() until character:FindFirstChild("HumanoidRootPart") and character:FindFirstChild("Humanoid")
+
+            local limbs = {"Left Arm", "Right Arm", "Left Leg", "Right Leg"}
+            for _, limb in ipairs(limbs) do
+                local part = character:FindFirstChild(limb)
+                if part then
+                    part:Destroy()
+                end
+            end
+
+            local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+            if torso then
+                local mesh = torso:FindFirstChildOfClass("SpecialMesh")
+                if not mesh then
+                    mesh = Instance.new("SpecialMesh", torso)
+                end
+                mesh.MeshId = "rbxasset://fonts/head.mesh"
+                mesh.Scale = Vector3.new(1.4, 1.8, 1.4)
+            end
+        end
+    end
+})
+
+Feng:Button({
+    Name = "滑铲按钮",
+    Callback = function()
+        local vu727 = game.Players.LocalPlayer
+        local v728 = vu727:WaitForChild("PlayerGui")
+        local v729 = v728:FindFirstChild("ScreenGui")
+        if not v729 then
+            v729 = Instance.new("ScreenGui")
+            v729.Name = "ScreenGui"
+            v729.Parent = v728
+        end
+        local v730 = Instance.new("TextButton")
+        v730.Size = UDim2.new(0, 100, 0, 40)
+        v730.Position = UDim2.new(0.5, -50, 0.5, -20)
+        v730.Text = "滑铲"
+        v730.BackgroundColor3 = Color3.fromRGB(0, 119, 255)
+        v730.TextColor3 = Color3.fromRGB(255, 255, 255)
+        v730.Font = Enum.Font.GothamBold
+        v730.TextSize = 16
+        v730.BorderSizePixel = 0
+        v730.Parent = v729
+        v730.Draggable = true
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = v730
+
+        local stroke = Instance.new("UIStroke")
+        stroke.Thickness = 2
+        stroke.Color = Color3.fromRGB(0, 0, 0)
+        stroke.Parent = v730
+
+        v730.MouseEnter:Connect(function()
+            v730.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+        end)
+
+        v730.MouseLeave:Connect(function()
+            v730.BackgroundColor3 = Color3.fromRGB(0, 119, 255)
+        end)
+
+        v730.MouseButton1Click:Connect(function()
+            local v731 = vu727.Character or vu727.CharacterAdded:Wait()
+            local v732 = v731:WaitForChild("HumanoidRootPart")
+            local v733 = v731:WaitForChild("Humanoid")
+            local v734 = Instance.new("Animation")
+            v734.AnimationId = "rbxassetid://182749109"
+            local vu735 = v733:LoadAnimation(v734)
+            local v736 = vu735
+            vu735:Play()
+            local v737 = game:GetService("TweenService")
+            local v738 = v732.CFrame * CFrame.new(0, 0, -20)
+            local v739 = v737:Create(v732, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                CFrame = v738
+            })
+            v739:Play()
+            v739.Completed:Connect(function()
+                vu735:Stop()
+            end)
+        end)
+    end
+})
+
+Feng:Button({
+    Name = "直升机",
+    Callback = function()
+        if game.Players.LocalPlayer.Character.Humanoid.RigType == Enum.HumanoidRigType.R6 then
+            spawn(function()
+                local speaker = game.Players.LocalPlayer
+                local Anim = Instance.new("Animation")
+                Anim.AnimationId = "rbxassetid://27432686"
+                local bruh = game.Players.LocalPlayer.Character.Humanoid:LoadAnimation(Anim)
+                bruh:Play()
+                bruh:AdjustSpeed(0)
+                speaker.Character.Animate.Disabled = true
+                local hi = Instance.new("Sound")
+                hi.Name = "Sound"
+                hi.SoundId = ""
+                hi.Volume = 2
+                hi.Looped = true
+                hi.archivable = false
+                hi.Parent = game.Workspace
+                hi:Play()
+
+                local spinSpeed = 40
+                local Spin = Instance.new("BodyAngularVelocity")
+                Spin.Name = "Spinning"
+                Spin.Parent = game.Players.LocalPlayer.Character.HumanoidRootPart
+                Spin.MaxTorque = Vector3.new(0, math.huge, 0)
+                Spin.AngularVelocity = Vector3.new(0,spinSpeed,0)
+            end)
+        else
+            spawn(function()
+                local speaker = game.Players.LocalPlayer
+                local Anim = Instance.new("Animation")
+                Anim.AnimationId = "rbxassetid://507776043"
+                local bruh = game.Players.LocalPlayer.Character.Humanoid:LoadAnimation(Anim)
+                bruh:Play()
+                bruh:AdjustSpeed(0)
+                speaker.Character.Animate.Disabled = true
+                local hi = Instance.new("Sound")
+                hi.Name = "Sound"
+                hi.SoundId = "空"
+                hi.Volume = 2
+                hi.Looped = true
+                hi.archivable = false
+                hi.Parent = game.Workspace
+                hi:Play()
+
+                local spinSpeed = 40
+                local Spin = Instance.new("BodyAngularVelocity")
+                Spin.Name = "Spinning"
+                Spin.Parent = game.Players.LocalPlayer.Character.HumanoidRootPart
+                Spin.MaxTorque = Vector3.new(0, math.huge, 0)
+                Spin.AngularVelocity = Vector3.new(0,spinSpeed,0)
+            end)
+        end
+        local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
+        local u = game.Players.LocalPlayer
+        local urchar = u.Character
+
+        task.spawn(function()
+            qUp = Mouse.KeyUp:Connect(function(KEY)
+                if KEY == 'q' then
+                    urchar.Humanoid.HipHeight = urchar.Humanoid.HipHeight - 3
+                end
+            end)
+            eUp = Mouse.KeyUp:Connect(function(KEY)
+               if KEY == 'e' then
+                    urchar.Humanoid.HipHeight = urchar.Humanoid.HipHeight + 3
+                end
+            end)
+        end)
+    end
+})
+
+local Feng = FengYu:Section({
+    Name = "权限设置",
+    SubName = "未知的权限？",
+    Logo = "84830962019412",
+    open = true
+})
+
+Feng:Button({
+    Name = "解锁全部角色和皮肤",
+    Callback = function()
+        task.spawn(function()
+            local player = game.Players.LocalPlayer
+            local purchased = player:WaitForChild("PlayerData"):WaitForChild("Purchased")
+            
+            local killersFolder = purchased:FindFirstChild("Killers") or Instance.new("Folder", purchased)
+            killersFolder.Name = "Killers"
+            local survivorsFolder = purchased:FindFirstChild("Survivors") or Instance.new("Folder", purchased)
+            survivorsFolder.Name = "Survivors"
+            local skinsFolder = purchased:FindFirstChild("Skins") or Instance.new("Folder", purchased)
+            skinsFolder.Name = "Skins"
+
+            for _, killer in ipairs(game:GetService("ReplicatedStorage"):WaitForChild("Assets"):WaitForChild("Killers"):GetChildren()) do
+                if not killersFolder:FindFirstChild(killer.Name) then
+                    Instance.new("StringValue", killersFolder).Name = killer.Name
+                end
+            end
+            
+            for _, survivor in ipairs(game:GetService("ReplicatedStorage"):WaitForChild("Assets"):WaitForChild("Survivors"):GetChildren()) do
+                if not survivorsFolder:FindFirstChild(survivor.Name) then
+                    Instance.new("StringValue", survivorsFolder).Name = survivor.Name
+                end
+            end
+            
+            local skinsRoot = game:GetService("ReplicatedStorage"):WaitForChild("Assets"):WaitForChild("Skins")
+            for _, skin in ipairs(skinsRoot:GetDescendants()) do
+                if (skin:IsA("Folder") or skin:IsA("Model")) and not skinsFolder:FindFirstChild(skin.Name) then
+                    Instance.new("StringValue", skinsFolder).Name = skin.Name
+                end
+            end
+        end)
+    end
+})
+
+Feng:Button({
+    Name = "解锁所有动作",
+    Callback = function()
+        task.spawn(function()
+            local player = game.Players.LocalPlayer
+            local purchased = player:WaitForChild("PlayerData"):WaitForChild("Purchased")
+            
+            local emotesFolder = purchased:FindFirstChild("Emotes") or Instance.new("Folder", purchased)
+            emotesFolder.Name = "Emotes"
+            
+            local emotesAssets = game:GetService("ReplicatedStorage"):WaitForChild("Assets"):WaitForChild("Emotes")
+            for _, module in ipairs(emotesAssets:GetDescendants()) do
+                if module:IsA("ModuleScript") and not emotesFolder:FindFirstChild(module.Name) then
+                    Instance.new("StringValue", emotesFolder).Name = module.Name
+                end
+            end
+        end)
+    end
+})
+
+Feng:Button({
+    Name = "解锁VIP权限",
+    Callback = function()
+        local localPlayer = game.Players.LocalPlayer
+        localPlayer:SetAttribute("VIP", true)
+        
+        local pData = localPlayer:WaitForChild("PlayerData")
+        local vVal = pData:FindFirstChild("VIP")
+        if not vVal then
+            vVal = Instance.new("BoolValue")
+            vVal.Name = "VIP"
+            vVal.Parent = pData
+        end
+        vVal.Value = true
+    end
+})
+
+local Feng = FengYu:Section({
+    Name = "修改系统",
+    SubName = "视觉上获得VIP",
+    Logo = "84830962019412",
+    open = true
+})
+
+local statsFields = {
+    Money = "钱",
+    NetWorth = "净资产",
+    KillerChance = "杀手几率",
+    TimePlayed = "游玩时间",
+    KillerWins = "杀手胜利",
+    Kills = "击杀数",
+    SurvivorWins = "幸存者胜利",
+    ObjectivesCompleted = "任务完成数"
+}
+
+for statName, displayName in pairs(statsFields) 
+do
+Feng:Input({
+    Name = "设置 " .. displayName,
+    Placeholder = "输入数值",
+    Callback = function(value)
+        pcall(function()
+            local localPlayer = game.Players.LocalPlayer
+            local stats = localPlayer:FindFirstChild("PlayerData") and localPlayer.PlayerData:FindFirstChild("Stats")
+            if not stats then return end
+            local statObj = stats:FindFirstChild(statName, true)
+            if statObj and (statObj:IsA("NumberValue") or statObj:IsA("IntValue") or statObj:IsA("FloatValue")) then
+                local num = tonumber(value)
+                if num then statObj.Value = num end
+            end
+        end)
     end
 })
 end
