@@ -1,25 +1,3 @@
---[[
-                                                                                    
-                                                                                    
-    ,---,.                                                                          
-  ,'  .' |                                                     ,---,                
-,---.'   |                  ,---,                             /_ ./|          ,--,  
-|   |   .'              ,-+-. /  |   ,----._,.          ,---, |  ' :        ,'_ /|  
-:   :  :      ,---.    ,--.'|'   |  /   /  ' /         /___/ \.  : |   .--. |  | :  
-:   |  |-,   /     \  |   |  ,"' | |   :     |          .  \  \ ,' ' ,'_ /| :  . |  
-|   :  ;/|  /    /  | |   | /  | | |   | .\  .           \  ;  `  ,' |  ' | |  . .  
-|   |   .' .    ' / | |   | |  | | .   ; ';  |            \  \    '  |  | ' |  | |  
-'   :  '   '   ;   /| |   | |  |/  '   .   . |             '  \   |  :  | : ;  ; |  
-|   |  |   '   |  / | |   | |--'    `---`-'| |              \  ;  ;  '  :  `--'   \ 
-|   :  \   |   :    | |   |/        .'__/\_: |               :  \  \ :  ,      .-./ 
-|   | ,'    \   \  /  '---'         |   :    :                \  ' ;  `--`----'     
-`----'       `----'                  \   \  /                  `--`                 
-                                      `--`-'                                        
-    by 风御 X ┃ FengYu Script Hub
-
-    此脚本为AI生成
-    
-]]
 local success, library = pcall(function()
     return loadstring(game:HttpGet("https://raw.githubusercontent.com/FengYu-X/FengYu-ui/refs/heads/main/UI.lua"))()
 end)
@@ -398,6 +376,21 @@ local Feng = FengYu:Section({
     open = true
 })
 
+-- 获取白名单全局状态并控制锁定
+local isWhitelisted = (type(getgenv) == "function" and getgenv().IsWhitelisted == true)
+
+Feng:Button({
+    Name = "★ 白名单专属特权 ★",
+    Locked = not isWhitelisted,
+    LockedTitle = "未授权已锁定",
+    Callback = function()
+        print("白名单验证通过，特权功能已激活！")
+        pcall(function()
+            Window:Notification("白名单权限", "验证通过，特权功能已正常激活！", "Success", 3)
+        end)
+    end
+})
+
 Feng:Button({
     Name = "翻译过的Dex",
     Callback = function()
@@ -759,8 +752,8 @@ Feng:Toggle({
 Feng:Toggle({
     Name = "穿墙",
     Value = false,
-    Callback = function(value)
-        state.noclip = value
+    Callback = function(stateValue)
+        state.noclip = stateValue
     end
 })
 end
@@ -769,8 +762,8 @@ Feng:Button({
     Name = "无敌",
     Callback = function()
         loadstring(request({
-    Url = "https://raw.githubusercontent.com/BrotherDou/max/refs/heads/风御-X/无敌.lua"
-}).Body)()
+            Url = "https://raw.githubusercontent.com/BrotherDou/max/refs/heads/风御-X/无敌.lua"
+        }).Body)()
     end
 })
 
@@ -809,12 +802,12 @@ do
         game.Lighting.FogStart = _env.NoFog and 0 or game.Lighting:GetAttribute("FogStart")
         game.Lighting.FogEnd = _env.NoFog and math.huge or game.Lighting:GetAttribute("FogEnd")
 
-        local fog = game.Lighting:FindFirstChildOfClass("Atmosphere")
-        if fog then
-            if not fog:GetAttribute("Density") then
-                fog:SetAttribute("Density", fog.Density)
+        local fogObj = game.Lighting:FindFirstChildOfClass("Atmosphere")
+        if fogObj then
+            if not fogObj:GetAttribute("Density") then
+                fogObj:SetAttribute("Density", fogObj.Density)
             end
-            fog.Density = _env.NoFog and 0 or fog:GetAttribute("Density")
+            fogObj.Density = _env.NoFog and 0 or fogObj:GetAttribute("Density")
         end
 
         if _env.Fullbright then
@@ -1668,6 +1661,1180 @@ Window:Category({
     Opened = true, 
 })
 
+local FengYu = Window:Tab("发电机", "105433515091179")
+
+local Feng = FengYu:Section({
+    Name = "发电机系统",
+    SubName = "里程碑的开始",
+    Logo = "105433515091179",
+    open = true
+})
+
+local vu2 = {
+    autoRepairActive = false
+}
+local vu4 = {
+    repairCheckInterval = 1.5
+}
+
+do
+    local flow = {
+        on = false,
+        nodeDelay = 0,
+        lineDelay = 0.4,
+    }
+
+    local function flowKey(n) return n.row.."-"..n.col end
+    local function flowNeighbour(r1,c1,r2,c2)
+        if r2==r1-1 and c2==c1 then return"up" end
+        if r2==r1+1 and c2==c1 then return"down" end
+        if r2==r1 and c2==c1-1 then return"left" end
+        if r2==r1 and c2==c1+1 then return"right" end
+        return false
+    end
+
+    local function flowOrder(path, endpoints)
+        if not path or #path == 0 then return path end
+        local lookup = {}
+        for _, n in ipairs(path) do lookup[flowKey(n)] = n end
+        local start
+        for _, ep in ipairs(endpoints or {}) do
+            for _, n in ipairs(path) do
+                if n.row == ep.row and n.col == ep.col then
+                    start = { row = ep.row, col = ep.col }
+                    break
+                end
+            end
+            if start then break end
+        end
+        if not start then
+            for _, n in ipairs(path) do
+                local nb = 0
+                for _, d in ipairs({{-1,0},{1,0},{0,-1},{0,1}}) do
+                    if lookup[(n.row+d[1]).."-"..(n.col+d[2])] then nb = nb + 1 end
+                end
+                if nb == 1 then start = { row = n.row, col = n.col }; break end
+            end
+        end
+        if not start then start = { row = path[1].row, col = path[1].col } end
+        local pool, ordered = {}, {}
+        for _, n in ipairs(path) do pool[flowKey(n)] = { row = n.row, col = n.col } end
+        local cur = start
+        table.insert(ordered, { row = cur.row, col = cur.col })
+        pool[flowKey(cur)] = nil
+        while next(pool) do
+            local moved = false
+            for k, node in pairs(pool) do
+                if flowNeighbour(cur.row, cur.col, node.row, node.col) then
+                    table.insert(ordered, { row = node.row, col = node.col })
+                    pool[k] = nil; cur = node; moved = true; break
+                end
+            end
+            if not moved then break end
+        end
+        return ordered
+    end
+
+    local function flowSolve(puzzle)
+        if not puzzle or not puzzle.Solution then return end
+        local indices = {}
+        for i = 1, #puzzle.Solution do indices[i] = i end
+        for i = #indices, 2, -1 do
+            local j = math.random(1, i)
+            indices[i], indices[j] = indices[j], indices[i]
+        end
+        for _, ci in ipairs(indices) do
+            local solution = puzzle.Solution[ci]
+            if not solution then continue end
+            local ordered = flowOrder(solution, puzzle.targetPairs[ci])
+            if not ordered or #ordered == 0 then continue end
+            puzzle.paths[ci] = {}
+            for _, node in ipairs(ordered) do
+                table.insert(puzzle.paths[ci], { row = node.row, col = node.col })
+                puzzle:updateGui()
+                task.wait(flow.nodeDelay)
+            end
+            task.wait(flow.lineDelay)
+            puzzle:checkForWin()
+        end
+    end
+
+    local hooked = false
+    local function setupFlowHook()
+        if hooked then return end
+        local modFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Modules")
+        local miniFolder = modFolder and modFolder:FindFirstChild("Minigames")
+        local fgFolder = miniFolder and miniFolder:FindFirstChild("FlowGameManager")
+        local fgModule = fgFolder and fgFolder:FindFirstChild("FlowGame")
+        if fgModule then
+            local ok, FG = pcall(require, fgModule)
+            if ok and FG and FG.new then
+                local orig = FG.new
+                FG.new = function(...)
+                    local p = orig(...)
+                    if flow.on then
+                        task.spawn(function()
+                            task.wait(0.3)
+                            flowSolve(p)
+                        end)
+                    end
+                    return p
+                end
+                hooked = true
+            end
+        end
+    end
+
+Feng:Toggle({
+    Name = "绘制修机",
+    Value = false,
+    Callback = function(on)
+        flow.on = on
+        if on and not hooked then
+            setupFlowHook()
+        end
+    end
+})
+
+Feng:Slider({
+    Name = "节点速度 (秒)",
+    Value = { 
+        Min = 0, 
+        Max = 1, 
+        Default = 0 
+    },
+    Rounding = 2,
+    Callback = function(v)
+        flow.nodeDelay = v
+    end
+})
+
+Feng:Slider({
+    Name = "线暂停 (秒)",
+    Value = { 
+        Min = 0, 
+        Max = 1, 
+        Default = 0.4
+    },
+    Rounding = 2,
+    Callback = function(v)
+        flow.lineDelay = v
+    end
+})
+
+Feng:Divider()
+
+Feng:Toggle({
+    Name = "自动修复发电机",
+    Value = false,
+    Callback = function(value)
+        vu2.autoRepairActive = value
+    end
+})
+
+    local function findNearestGenerator()
+        local character = game.Players.LocalPlayer.Character
+        if not character then return nil end
+        local root = character:FindFirstChild("HumanoidRootPart")
+        if not root then return nil end
+
+        local generators = {}
+        local map = workspace:FindFirstChild("Map")
+        if map then
+            local ingame = map:FindFirstChild("Ingame")
+            if ingame then
+                local mapFolder = ingame:FindFirstChild("Map")
+                if mapFolder then
+                    for _, obj in pairs(mapFolder:GetChildren()) do
+                        if obj.Name == "Generator" then
+                            table.insert(generators, obj)
+                        end
+                    end
+                end
+            end
+        end
+
+        local nearest, nearestDist = nil, math.huge
+        for _, gen in pairs(generators) do
+            local part = gen:FindFirstChildWhichIsA("BasePart")
+            if part then
+                local dist = (root.Position - part.Position).Magnitude
+                if dist < nearestDist then
+                    nearest, nearestDist = gen, dist
+                end
+            end
+        end
+        return nearest
+    end
+
+    local function repairGenerator(generator)
+        if not generator then return false end
+        local remotes = generator:FindFirstChild("Remotes")
+        if remotes then
+            local re = remotes:FindFirstChild("RE")
+            if re and re:IsA("RemoteEvent") then
+                re:FireServer()
+                return true
+            end
+        end
+        return false
+    end
+
+    spawn(function()
+        while wait() do
+            if vu2.autoRepairActive then
+                local generator = findNearestGenerator()
+                if generator then
+                    repairGenerator(generator)
+                    wait(vu4.repairCheckInterval)
+                end
+            end
+            wait(0.1)
+        end
+    end)
+
+Feng:Button({
+    Name = "完成所有发电机",
+    Callback = function()
+        pcall(function()
+            local gameMap = workspace:FindFirstChild("Map")
+            if not (gameMap and gameMap:FindFirstChild("Ingame") and gameMap.Ingame:FindFirstChild("Map")) then
+                return
+            end
+
+            for _, v in ipairs(gameMap.Ingame.Map:GetChildren()) do
+                if v.Name == "Generator" and v:FindFirstChild("Progress") and v.Progress.Value < 100 then
+                    local positions = v:FindFirstChild("Positions")
+                    if positions then
+                        local center = positions:FindFirstChild("Center")
+                        local right = positions:FindFirstChild("Right")
+                        local left = positions:FindFirstChild("Left")
+                        if center and right and left then
+                            local function occupied(pos)
+                                local folder = workspace:FindFirstChild("Players")
+                                local survivors = folder and folder:FindFirstChild("Survivors")
+                                if not survivors then return false end
+                                for _, sv in ipairs(survivors:GetChildren()) do
+                                    if sv ~= game.Players.LocalPlayer and sv:FindFirstChild("HumanoidRootPart") then
+                                        if (sv.HumanoidRootPart.Position - pos).Magnitude <= 6 then
+                                            return true
+                                        end
+                                    end
+                                end
+                                return false
+                            end
+
+                            local centerOccupied = occupied(center.Position)
+                            local rightOccupied = occupied(right.Position)
+                            local leftOccupied = occupied(left.Position)
+
+                            if not (centerOccupied and rightOccupied and leftOccupied) then
+                                local char = game.Players.LocalPlayer.Character
+                                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                                if hrp then
+                                    if not centerOccupied then
+                                        hrp.CFrame = center.CFrame
+                                    elseif not rightOccupied then
+                                        hrp.CFrame = right.CFrame
+                                    else
+                                        hrp.CFrame = left.CFrame
+                                    end
+                                end
+                                task.wait(0.2)
+
+                                local s2, r2 = pcall(function()
+                                    return v.Remotes.RF:InvokeServer("Enter")
+                                end)
+                                if s2 and r2 == "fixing" then
+                                    for _ = 1, 4 do
+                                        if v.Progress.Value >= 100 then break end
+                                        pcall(function()
+                                            v.Remotes.RE:FireServer()
+                                        end)
+                                        task.wait(1.4)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+})
+end
+
+local FengYu = Window:Tab("幸存者功能包", "6452688833")
+
+local Feng = FengYu:Section({
+    Name = "机会",
+    SubName = "这是你最后的机会",
+    Logo = "110279261246303",
+    open = true,
+})
+
+do
+    local CoinflipSettings = {
+        Enabled = false,
+        TargetCharge = 3,
+    }
+    local lastCoinflipTime = 0
+    local coinflipCooldown = 2
+    local function readCoinflipChargesText()
+        local ok, txt = pcall(function()
+            local mainUI = game.Players.LocalPlayer:FindFirstChild("PlayerGui") and game.Players.LocalPlayer.PlayerGui:FindFirstChild("MainUI")
+            if not mainUI then return nil end
+            local abil = mainUI:FindFirstChild("AbilityContainer")
+            if not abil then return nil end
+            local coin = abil:FindFirstChild("Reroll")
+            if not coin then return nil end
+            local chargesLabel = coin:FindFirstChild("Charges")
+            if not chargesLabel then return nil end
+            return tostring(chargesLabel.Text)
+        end)
+        if ok then return txt end
+        return nil
+    end
+
+    task.spawn(function()
+        while true do
+            task.wait(0.5)
+            if not CoinflipSettings.Enabled then continue end
+
+            local now = tick()
+            if now - lastCoinflipTime < coinflipCooldown then continue end
+
+            local isChance = false
+            local playersFolder = workspace:FindFirstChild("Players")
+            local survFolder = playersFolder and playersFolder:FindFirstChild("Survivors")
+            if survFolder then
+                for _, surv in ipairs(survFolder:GetChildren()) do
+                    if surv:GetAttribute("Username") == game.Players.LocalPlayer.Name and surv.Name == "Chance" then
+                        isChance = true
+                        break
+                    end
+                end
+            end
+            if not isChance then continue end
+
+            local charges = tonumber(readCoinflipChargesText())
+            if charges and charges < CoinflipSettings.TargetCharge then
+                lastCoinflipTime = now
+                pcall(function()
+                    local args = {
+                        "UseActorAbility",
+                        { buffer.fromstring("\003\b\000\000\000CoinFlip") }
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("Network"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+                end)
+            end
+        end
+    end)
+
+    local ChanceAimbot = {
+        Enabled = false,
+        Prediction = false,
+        Range = 100,
+    }
+
+    local oneShootAnims = {"73921036900313", "111384272984267", "90499469533503", "133491532453922"}
+
+    local function isFlintlockVisible(char)
+        if not char then return false end
+        local tool = char:FindFirstChildOfClass("Tool")
+        if tool and (string.lower(tool.Name):find("flintlock") or string.lower(tool.Name):find("revolver") or string.lower(tool.Name):find("gun")) then
+            return true
+        end
+        local flint = char:FindFirstChild("Flintlock", true)
+        if not flint then return false end
+        if not (flint:IsA("BasePart") or flint:IsA("MeshPart") or flint:IsA("UnionOperation")) then
+            flint = flint:FindFirstChildWhichIsA("BasePart", true)
+            if not flint then return false end
+        end
+        return flint.Transparency < 1
+    end
+
+    local chanceKillersCache = {}
+    local function updateChanceKillers()
+        local playersFolder = workspace:FindFirstChild("Players")
+        if playersFolder then
+            local kFolder = playersFolder:FindFirstChild("Killers")
+            if kFolder then
+                local list = {}
+                for _, k in ipairs(kFolder:GetChildren()) do
+                    if k:GetAttribute("Username") then
+                        table.insert(list, k)
+                    end
+                end
+                chanceKillersCache = list
+            end
+        end
+    end
+
+    task.spawn(function()
+        while true do
+            updateChanceKillers()
+            task.wait(0.25)
+        end
+    end)
+
+    local function isLocalPlayerChance()
+        local char = game.Players.LocalPlayer.Character
+        if not char then return false end
+        local survivorsFolder = workspace:FindFirstChild("Players") and workspace.Players:FindFirstChild("Survivors")
+        if not survivorsFolder then return false end
+        for _, surv in ipairs(survivorsFolder:GetChildren()) do
+            if surv == char and surv.Name == "Chance" then
+                return true
+            end
+        end
+        return false
+    end
+
+    local function isOneShootAnimating(char)
+        if not char then return false end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local animator = hum and hum:FindFirstChildOfClass("Animator")
+        if animator then
+            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                local id = tostring(track.Animation and track.Animation.AnimationId or ""):match("%d+")
+                if id then
+                    for _, animId in ipairs(oneShootAnims) do
+                        if id == animId then
+                            return true
+                        end
+                    end
+                end
+            end
+        end
+        return false
+    end
+
+    task.spawn(function()
+        while true do
+            task.wait(0.05)
+            if not ChanceAimbot.Enabled then continue end
+
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            if not char then continue end
+            if not isLocalPlayerChance() then continue end
+
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if not root then continue end
+
+            local isShooting = isOneShootAnimating(char) or isFlintlockVisible(char)
+            if not isShooting then continue end
+
+            local target = nil
+            local shortestDist = ChanceAimbot.Range
+            for _, killer in ipairs(chanceKillersCache) do
+                local kRoot = killer:FindFirstChild("HumanoidRootPart")
+                if kRoot then
+                    local dist = (kRoot.Position - root.Position).Magnitude
+                    if dist <= shortestDist then
+                        shortestDist = dist
+                        target = kRoot
+                    end
+                end
+            end
+
+            if target then
+                local targetPos = target.Position
+
+                if ChanceAimbot.Prediction then
+                    local velocity = target.Velocity or target.AssemblyLinearVelocity
+                    if velocity then
+                        local ping = 0
+                        pcall(function() ping = lp:GetNetworkPing() end)
+                        local dist = (target.Position - root.Position).Magnitude
+                        local raycastSpeed = 1000
+                        local raycastDelay = dist / raycastSpeed
+                        local totalDelay = ping + raycastDelay
+                        local dropoff = math.clamp(dist / ChanceAimbot.Range, 0.1, 1)
+                        local distanceBoost = 1 + (dist / ChanceAimbot.Range) * 0.25
+                        local predictionFactor = totalDelay * 1.2 * dropoff * distanceBoost
+                        targetPos = targetPos + (velocity * predictionFactor)
+                    end
+                end
+
+                root.CFrame = CFrame.lookAt(root.Position, Vector3.new(targetPos.X, root.Position.Y, targetPos.Z))
+            end
+        end
+    end)
+
+Feng:Toggle({
+    Name = "启用机会射击自瞄",
+    Value = false,
+    Callback = function(v)
+        ChanceAimbot.Enabled = v
+    end
+})
+
+Feng:Toggle({
+    Name = "瞄准预测",
+    Value = false,
+    Callback = function(v)
+        ChanceAimbot.Prediction = v
+    end
+})
+
+Feng:Slider({
+    Name = "射击半径",
+    Value = { 
+        Min = 20, 
+        Max = 1000, 
+        Default = 100 
+    },
+    Callback = function(v)
+        ChanceAimbot.Range = v
+    end
+})
+
+Feng:Divider()
+
+Feng:Toggle({
+    Name = "自动抛硬币翻转",
+    Value = false,
+    Callback = function(v)
+        CoinflipSettings.Enabled = v
+    end
+})
+
+Feng:Dropdown({
+    Name = "硬币充能层数",
+    Values = {"1", "2", "3"},
+    Value = "3",
+    Multi = false,
+    Callback = function(val)
+        CoinflipSettings.TargetCharge = tonumber(val)
+    end
+})
+end
+
+local Feng = FengYu:Section({
+    Name = "两次",
+    SubName = "蚊子来了！！！",
+    Logo = "86434410365514",
+    open = true,
+})
+
+do
+    local DEFAULT_PROXIMITY   = 8
+    local DEFAULT_DURATION    = 0.45
+    local BEHIND_DISTANCE     = 3.5
+    local CHECK_INTERVAL      = 0.05
+    local COOLDOWN            = 5
+    local LERP_SPEED          = 0.55
+    local BEHIND_CONE_DEGREES = 70
+    local REMOTE_FIRE_DELAY   = 0.0
+    local AIM_SNAP_DELAY      = 0.25
+    local DEBUG_LINE          = true
+
+    local isRunning     = true
+    local enabled       = false
+    local daggerEnabled = false
+    local rangeMode     = "Behind"
+    local backstabType  = "Lerp"
+    local proximity     = DEFAULT_PROXIMITY
+    local lastTrigger   = 0
+    local aimRefCount   = 0
+    local debugBeam     = nil
+
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+    local clientPlayer = Players.LocalPlayer
+
+    local function getCharacter()
+        return clientPlayer.Character or clientPlayer.CharacterAdded:Wait()
+    end
+
+    local function getDaggerButton()
+        local pg = clientPlayer:FindFirstChild("PlayerGui")
+        if not pg then return nil end
+        local mainUI = pg:FindFirstChild("MainUI")
+        if not mainUI then return nil end
+        local container = mainUI:FindFirstChild("AbilityContainer")
+        if not container then return nil end
+        return container:FindFirstChild("Dagger")
+    end
+
+    local function getDaggerCooldown()
+        local btn = getDaggerButton()
+        if not btn then return nil end
+        return btn:FindFirstChild("CooldownTime") or btn:FindFirstChild("Cooldown") or
+               btn:FindFirstChildWhichIsA("NumberValue") or btn:FindFirstChildWhichIsA("StringValue") or
+               btn:FindFirstChild("CooldownLabel") or btn:FindFirstChild("Timer") or btn:FindFirstChild("CD")
+    end
+
+    local function readCooldownValue(cdObj)
+        if not cdObj then return nil end
+        if cdObj:IsA("NumberValue")  then return cdObj.Value end
+        if cdObj:IsA("StringValue")  then return tonumber(cdObj.Value) end
+        if cdObj:IsA("TextLabel") or cdObj:IsA("TextBox") then return tonumber(cdObj.Text) end
+        if type(cdObj.Value) == "number" then return cdObj.Value end
+        if type(cdObj.Value) == "string" then return tonumber(cdObj.Value) end
+        if cdObj.Text ~= nil             then return tonumber(cdObj.Text) end
+        return nil
+    end
+
+    local function getKillersFolder()
+        local playersFolder = Workspace:FindFirstChild("Players")
+        if not playersFolder then return nil end
+        return playersFolder:FindFirstChild("Killers")
+    end
+
+    local function isValidKillerModel(model)
+        if not model then return false end
+        local hrp      = model:FindFirstChild("HumanoidRootPart")
+        local humanoid = model:FindFirstChildWhichIsA("Humanoid")
+        return hrp and humanoid and humanoid.Health and humanoid.Health > 0
+    end
+
+    local function tryActivateButton(btn)
+        if not btn then return false end
+        pcall(function() if btn.Activate then btn:Activate() end end)
+        local ok, conns = pcall(function()
+            if type(getconnections) == "function" and btn.MouseButton1Click then
+                return getconnections(btn.MouseButton1Click)
+            end
+            return nil
+        end)
+        if ok and conns then
+            for _, conn in ipairs(conns) do
+                pcall(function()
+                    if conn.Function then conn.Function()
+                    elseif conn.func  then conn.func()
+                    elseif conn.Fire  then conn.Fire() end
+                end)
+            end
+        end
+        pcall(function() if btn.Activated then btn.Activated:Fire() end end)
+        return true
+    end
+
+    local function setAutoRotate(value)
+        local char = clientPlayer.Character
+        if not char then return end
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        if hum then pcall(function() hum.AutoRotate = value end) end
+    end
+
+    local function isPlayerBehindKiller(hrp, khrp, dist)
+        if dist > proximity or dist < 0.01 then return false end
+        local toPlayer = (hrp.Position - khrp.Position).Unit
+        local killerBack = -khrp.CFrame.LookVector
+        local dot = toPlayer:Dot(killerBack)
+        local threshold = math.cos(math.rad(BEHIND_CONE_DEGREES))
+        return dot >= threshold
+    end
+
+    local function removeDebugLine()
+        if debugBeam then
+            pcall(function() debugBeam:Destroy() end)
+            debugBeam = nil
+        end
+    end
+
+    local function drawDebugLine(hrp, khrp, isValid)
+        if not DEBUG_LINE then removeDebugLine(); return end
+        pcall(function()
+            local att0 = hrp:FindFirstChild("__BSAtt0") or Instance.new("Attachment", hrp)
+            att0.Name = "__BSAtt0"
+            att0.Position = Vector3.zero
+
+            local att1 = khrp:FindFirstChild("__BSAtt1") or Instance.new("Attachment", khrp)
+            att1.Name = "__BSAtt1"
+            att1.Position = Vector3.zero
+
+            if not debugBeam then
+                local b = Instance.new("Beam")
+                b.Name           = "__BSBeam"
+                b.Attachment0    = att0
+                b.Attachment1    = att1
+                b.FaceCamera     = true
+                b.Width0         = 0.08
+                b.Width1         = 0.08
+                b.Segments       = 1
+                b.LightEmission  = 1
+                b.LightInfluence = 0
+                b.Parent         = hrp
+                debugBeam = b
+            end
+
+            debugBeam.Attachment0 = att0
+            debugBeam.Attachment1 = att1
+            debugBeam.Color = isValid
+                and ColorSequence.new(Color3.fromRGB(50, 220, 100))
+                or  ColorSequence.new(Color3.fromRGB(220, 80, 60))
+        end)
+    end
+
+    local function activateForKiller(killerModel, duration)
+        if not killerModel or not isRunning then return end
+        local char     = getCharacter()
+        local humanoid = char and char:FindFirstChildWhichIsA("Humanoid")
+        local hrp      = char and char:FindFirstChild("HumanoidRootPart")
+        local khrp     = killerModel:FindFirstChild("HumanoidRootPart")
+        if not humanoid or not hrp or not khrp then return end
+
+        aimRefCount = aimRefCount + 1
+        if aimRefCount == 1 then pcall(function() humanoid.AutoRotate = false end) end
+
+        local function finishAiming()
+            aimRefCount = math.max(0, aimRefCount - 1)
+            if aimRefCount == 0 then setAutoRotate(true) end
+        end
+
+        local function computeBehindCFrame()
+            local kCF       = khrp.CFrame
+            local behindPos = kCF.Position - (kCF.LookVector.Unit * BEHIND_DISTANCE)
+            behindPos = Vector3.new(behindPos.X, kCF.Position.Y, behindPos.Z)
+            return CFrame.new(behindPos, behindPos + kCF.LookVector.Unit)
+        end
+
+        if backstabType == "Lerp" then
+            local t0 = os.clock()
+            local conn
+            conn = RunService.Heartbeat:Connect(function()
+                if not isRunning or os.clock() - t0 >= duration then
+                    conn:Disconnect(); finishAiming(); return
+                end
+                if khrp and hrp then
+                    hrp.CFrame = hrp.CFrame:Lerp(computeBehindCFrame(), LERP_SPEED)
+                end
+            end)
+        elseif backstabType == "Teleport" then
+            pcall(function() hrp.CFrame = computeBehindCFrame() end)
+            task.delay(duration, finishAiming)
+        elseif backstabType == "Aim" then
+            local t0 = os.clock()
+            local conn
+            conn = RunService.Heartbeat:Connect(function()
+                if not isRunning or os.clock() - t0 >= duration then
+                    conn:Disconnect(); finishAiming(); return
+                end
+                if khrp and hrp then
+                    local stabTarget = khrp.Position + khrp.CFrame.LookVector * 2
+                    local aimPos     = Vector3.new(stabTarget.X, hrp.Position.Y, stabTarget.Z)
+                    hrp.CFrame = hrp.CFrame:Lerp(
+                        CFrame.new(hrp.Position, aimPos),
+                        LERP_SPEED * 1.8
+                    )
+                end
+            end)
+        end
+    end
+
+    task.spawn(function()
+        while isRunning do
+            task.wait(CHECK_INTERVAL)
+            if not enabled or not isRunning then continue end
+
+            local killersFolder = getKillersFolder()
+            if not killersFolder then continue end
+
+            local char = getCharacter()
+            local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+            if not hrp then continue end
+
+            local triggered = false
+
+            for _, killer in pairs(killersFolder:GetChildren()) do
+                if triggered then break end
+                if not isValidKillerModel(killer) then continue end
+
+                local khrp = killer:FindFirstChild("HumanoidRootPart")
+                local dist = (khrp.Position - hrp.Position).Magnitude
+
+                if dist <= proximity then
+                    local valid = isPlayerBehindKiller(hrp, khrp, dist)
+                    drawDebugLine(hrp, khrp, valid)
+
+                    if valid and rangeMode ~= "Around" and os.clock() - lastTrigger >= COOLDOWN then
+                        local cdNum = readCooldownValue(getDaggerCooldown())
+                        if not (cdNum and cdNum > 0.1) then
+                            lastTrigger = os.clock()
+                            triggered   = true
+
+                            task.spawn(function()
+                                activateForKiller(killer, DEFAULT_DURATION)
+                                if REMOTE_FIRE_DELAY > 0 then task.wait(REMOTE_FIRE_DELAY) end
+                                if daggerEnabled then tryActivateButton(getDaggerButton()) end
+                                if AIM_SNAP_DELAY > 0 then
+                                    task.wait(AIM_SNAP_DELAY)
+                                    if not isRunning then return end
+                                    local khrp2 = killer:FindFirstChild("HumanoidRootPart")
+                                    local char2 = getCharacter()
+                                    local hrp2  = char2 and char2:FindFirstChild("HumanoidRootPart")
+                                    if khrp2 and hrp2 then
+                                        local behindPos = khrp2.CFrame.Position - (khrp2.CFrame.LookVector.Unit * BEHIND_DISTANCE)
+                                        behindPos = Vector3.new(behindPos.X, hrp2.Position.Y, behindPos.Z)
+                                        hrp2.CFrame = CFrame.new(behindPos, behindPos + khrp2.CFrame.LookVector.Unit)
+                                    end
+                                end
+                            end)
+                        end
+                    end
+                elseif DEBUG_LINE then
+                    removeDebugLine()
+                end
+
+                if rangeMode == "Around" and dist <= proximity and os.clock() - lastTrigger >= COOLDOWN and not triggered then
+                    local cdNum = readCooldownValue(getDaggerCooldown())
+                    if not (cdNum and cdNum > 0.1) then
+                        lastTrigger = os.clock()
+                        triggered   = true
+                        task.spawn(function()
+                            activateForKiller(killer, DEFAULT_DURATION)
+                            if REMOTE_FIRE_DELAY > 0 then task.wait(REMOTE_FIRE_DELAY) end
+                            if daggerEnabled then tryActivateButton(getDaggerButton()) end
+                            if AIM_SNAP_DELAY > 0 then
+                                task.wait(AIM_SNAP_DELAY)
+                                if not isRunning then return end
+                                local khrp2 = killer:FindFirstChild("HumanoidRootPart")
+                                local char2 = getCharacter()
+                                local hrp2  = char2 and char2:FindFirstChild("HumanoidRootPart")
+                                if khrp2 and hrp2 then
+                                    local tp = Vector3.new(khrp2.Position.X, hrp2.Position.Y, khrp2.Position.Z)
+                                    hrp2.CFrame = CFrame.new(hrp2.Position, tp)
+                                end
+                            end
+                        end)
+                    end
+                end
+            end
+
+            if not triggered then removeDebugLine() end
+        end
+    end)
+
+Feng:Toggle({
+    Name = "自动背刺",
+    Value = false,
+    Callback = function(state) 
+        enabled = state 
+    end
+})
+
+Feng:Toggle({
+    Name = "背刺时自动攻击",
+    Value = false,
+    Callback = function(state) 
+        daggerEnabled = state 
+    end
+})
+
+Feng:Toggle({
+    Name = "调试射线",
+    Value = true,
+    Callback = function(state)
+      DEBUG_LINE = state
+      if not state then 
+          removeDebugLine() 
+      end
+    end
+})
+
+Feng:Dropdown({
+    Name = "背刺类型",
+    Values = {
+        "缓动位移", 
+        "瞬移", 
+        "锁定瞄准"
+    },
+    Value   = "缓动位移",
+    Callback = function(value)
+      if value == "缓动位移" then backstabType = "Lerp"
+          elseif value == "瞬移" then backstabType = "Teleport"
+          elseif value == "锁定瞄准" then backstabType = "Aim" 
+      end
+    end
+})
+
+Feng:Dropdown({
+    Name = "范围模式",
+    Values = {"全范围", "背后"},
+    Value = "背后",
+    Callback = function(value)
+      if value == "全范围" then rangeMode = "Around"
+         else rangeMode = "Behind" 
+      end
+    end
+})
+
+Feng:Slider({
+    Name = "检测范围",
+    Value = { 
+        Min = 1, 
+        Max = 30, 
+        Default = DEFAULT_PROXIMITY 
+    },
+    Callback = function(value)
+        proximity = value 
+    end
+})
+
+Feng:Slider({
+    Name = "背后瞬移距离",
+    Value = { 
+        Min = 0.5, 
+        Max = 10, 
+        Default = BEHIND_DISTANCE 
+    },
+    Callback = function(value)
+        BEHIND_DISTANCE = value 
+    end
+})
+
+Feng:Slider({
+    Name = "背后判定锥角",
+    Value = { 
+        Min = 10, 
+        Max = 180, 
+        Default = BEHIND_CONE_DEGREES 
+    },
+    Callback = function(value)
+        BEHIND_CONE_DEGREES = value 
+    end
+})
+
+Feng:Slider({
+    Name = "远程触发延迟",
+    Value = { 
+        Min = 0.00, 
+        Max = 0.50, 
+        Default = REMOTE_FIRE_DELAY 
+    },
+    Callback = function(value)
+        REMOTE_FIRE_DELAY = value 
+    end
+})
+
+Feng:Slider({
+    Name = "瞄准硬锁定延迟",
+    Value = { 
+        Min = 0.00, 
+        Max = 0.30, 
+        Default = AIM_SNAP_DELAY 
+    },
+    Callback = function(value)
+        AIM_SNAP_DELAY = value 
+    end
+})
+end
+
+local Feng = FengYu:Section({
+    Name = "访客1337",
+    SubName = "强大？",
+    Logo = "101150016240183",
+    open = true,
+})
+
+Feng:Button({
+    Name = "格挡脚本",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/BrotherDou/max/refs/heads/main/Auto.lua"))()
+    end
+})
+
+local Feng = FengYu:Section({
+    Name = "简.多",
+    SubName = "母鹿杀人事件",
+    Logo = "84349929220383",
+    open = true,
+})
+
+local Feng = FengYu:Section({
+    Name = "维罗妮卡",
+    SubName = "滑板小子咔嚓的一声闪亮登场",
+    Logo = "98580998849514",
+    open = true,
+})
+
+local VeronicaSk8Control = false
+Feng:Toggle({
+    Name = "启用滑板控制",
+    Value = false,
+    Callback = function(state)
+        VeronicaSk8Control = state
+    end
+})
+
+do
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+    local Players = game:GetService("Players")
+    local LP = Players.LocalPlayer
+
+    local veronicaSk8Anims = {
+        "130352140726486",
+        "122542233810574",
+        "117058860640843",
+        "123803922491274"
+    }
+
+    local controlChargeActive = false
+    local overrideConnection = nil
+    local savedHumanoidState = {}
+    local hasEverEnabledShiftlock = false
+
+    local function getHumanoid()
+        if not LP or not LP.Character then return nil end
+        return LP.Character:FindFirstChildOfClass("Humanoid")
+    end
+
+    local function saveHumState(hum)
+        if not hum or savedHumanoidState[hum] then return end
+        local s = {}
+        pcall(function()
+            s.WalkSpeed = hum.WalkSpeed
+            local ok, _ = pcall(function() s.JumpPower = hum.JumpPower end)
+            if not ok then pcall(function() s.JumpPower = hum.JumpHeight end) end
+            local ok2, ar = pcall(function() return hum.AutoRotate end)
+            if ok2 then s.AutoRotate = ar end
+            s.PlatformStand = hum.PlatformStand
+        end)
+        savedHumanoidState[hum] = s
+    end
+
+    local function restoreHumState(hum)
+        if not hum then return end
+        local s = savedHumanoidState[hum]
+        if not s then return end
+        pcall(function()
+            if s.WalkSpeed ~= nil then hum.WalkSpeed = s.WalkSpeed end
+            if s.JumpPower ~= nil then
+                local ok, _ = pcall(function() hum.JumpPower = s.JumpPower end)
+                if not ok then pcall(function() hum.JumpHeight = s.JumpPower end) end
+            end
+            if s.AutoRotate ~= nil then pcall(function() hum.AutoRotate = s.AutoRotate end) end
+            if s.PlatformStand ~= nil then hum.PlatformStand = s.PlatformStand end
+        end)
+        savedHumanoidState[hum] = nil
+    end
+
+    local function startOverride()
+        if controlChargeActive then return end
+        local hum = getHumanoid()
+        if not hum then return end
+        controlChargeActive = true
+        saveHumState(hum)
+
+        pcall(function()
+            hum.WalkSpeed = 60
+            hum.AutoRotate = false
+        end)
+
+        overrideConnection = RunService.RenderStepped:Connect(function()
+            local humanoid = getHumanoid()
+            local rootPart = humanoid and humanoid.Parent and humanoid.Parent:FindFirstChild("HumanoidRootPart")
+            if not humanoid or not rootPart then return end
+
+            pcall(function()
+                humanoid.WalkSpeed = 60
+                humanoid.AutoRotate = false
+            end)
+
+            local cam = workspace.CurrentCamera
+            if cam then
+                local lookVec = cam.CFrame.LookVector
+                local flat = Vector3.new(lookVec.X, 0, lookVec.Z)
+                if flat.Magnitude > 0.01 then
+                    rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + flat.Unit)
+                end
+            end
+
+            local direction = rootPart.CFrame.LookVector
+            local horizontal = Vector3.new(direction.X, 0, direction.Z)
+            if horizontal.Magnitude > 0 then
+                humanoid:Move(horizontal.Unit)
+            else
+                humanoid:Move(Vector3.new(0, 0, 0))
+            end
+        end)
+    end
+
+    local function stopOverride()
+        if not controlChargeActive then return end
+        controlChargeActive = false
+
+        if overrideConnection then
+            pcall(function() overrideConnection:Disconnect() end)
+            overrideConnection = nil
+        end
+
+        local hum = getHumanoid()
+        if hum then
+            pcall(function()
+                restoreHumState(hum)
+                hum:Move(Vector3.new(0, 0, 0))
+            end)
+        end
+    end
+
+    local function detectChargeAnimation()
+        local hum = getHumanoid()
+        if not hum then return false end
+        for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+            local ok, animId = pcall(function()
+                return tostring(track.Animation and track.Animation.AnimationId or ""):match("%d+")
+            end)
+            if ok and animId and animId ~= "" then
+                for _, id in ipairs(veronicaSk8Anims) do
+                    if animId == id then
+                        return true
+                    end
+                end
+            end
+        end
+        return false
+    end
+
+    RunService.RenderStepped:Connect(function()
+        if not VeronicaSk8Control then
+            if controlChargeActive then
+                stopOverride()
+            end
+            return
+        end
+
+        local hum = getHumanoid()
+        if not hum then
+            if controlChargeActive then
+                stopOverride()
+            end
+            return
+        end
+
+        local isCharging = detectChargeAnimation()
+        local isCurrentlyShiftlock = (UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter) or
+                                    UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+        if isCurrentlyShiftlock then
+            hasEverEnabledShiftlock = true
+        end
+        local isShiftlockActive = hasEverEnabledShiftlock or isCurrentlyShiftlock
+
+        if isCharging and isShiftlockActive then
+            if not controlChargeActive then
+                startOverride()
+            end
+        else
+            if controlChargeActive then
+                stopOverride()
+            end
+        end
+    end)
+
+    LP.CharacterAdded:Connect(function()
+        if controlChargeActive then
+            stopOverride()
+        end
+        hasEverEnabledShiftlock = false
+    end)
+end
+
 local FengYu = Window:Tab("综合功能", "84830962019412")
 
 local Feng = FengYu:Section({
@@ -2094,1005 +3261,105 @@ Feng:Toggle({
 })
 end
 
-local FengYu = Window:Tab("发电机", "105433515091179")
+Window:Category({
+    Name = "杀手区",
+    Collapsible = true,
+    Opened = true, 
+})
+
+local FengYu = Window:Tab("杀手功能包", "10953967587")
 
 local Feng = FengYu:Section({
-    Name = "发电机系统",
-    SubName = "里程碑的开始",
-    Logo = "84830962019412",
-    open = true
-})
-
-local vu2 = {
-    autoRepairActive = false
-}
-local vu4 = {
-    repairCheckInterval = 1.5
-}
-
-do
-    local flow = {
-        on = false,
-        nodeDelay = 0.04,
-        lineDelay = 0.60,
-    }
-
-    local function flowKey(n) return n.row.."-"..n.col end
-    local function flowNeighbour(r1,c1,r2,c2)
-        if r2==r1-1 and c2==c1 then return"up" end
-        if r2==r1+1 and c2==c1 then return"down" end
-        if r2==r1 and c2==c1-1 then return"left" end
-        if r2==r1 and c2==c1+1 then return"right" end
-        return false
-    end
-
-    local function flowOrder(path, endpoints)
-        if not path or #path == 0 then return path end
-        local lookup = {}
-        for _, n in ipairs(path) do lookup[flowKey(n)] = n end
-        local start
-        for _, ep in ipairs(endpoints or {}) do
-            for _, n in ipairs(path) do
-                if n.row == ep.row and n.col == ep.col then
-                    start = { row = ep.row, col = ep.col }
-                    break
-                end
-            end
-            if start then break end
-        end
-        if not start then
-            for _, n in ipairs(path) do
-                local nb = 0
-                for _, d in ipairs({{-1,0},{1,0},{0,-1},{0,1}}) do
-                    if lookup[(n.row+d[1]).."-"..(n.col+d[2])] then nb = nb + 1 end
-                end
-                if nb == 1 then start = { row = n.row, col = n.col }; break end
-            end
-        end
-        if not start then start = { row = path[1].row, col = path[1].col } end
-        local pool, ordered = {}, {}
-        for _, n in ipairs(path) do pool[flowKey(n)] = { row = n.row, col = n.col } end
-        local cur = start
-        table.insert(ordered, { row = cur.row, col = cur.col })
-        pool[flowKey(cur)] = nil
-        while next(pool) do
-            local moved = false
-            for k, node in pairs(pool) do
-                if flowNeighbour(cur.row, cur.col, node.row, node.col) then
-                    table.insert(ordered, { row = node.row, col = node.col })
-                    pool[k] = nil; cur = node; moved = true; break
-                end
-            end
-            if not moved then break end
-        end
-        return ordered
-    end
-
-    local function flowSolve(puzzle)
-        if not puzzle or not puzzle.Solution then return end
-        local indices = {}
-        for i = 1, #puzzle.Solution do indices[i] = i end
-        for i = #indices, 2, -1 do
-            local j = math.random(1, i)
-            indices[i], indices[j] = indices[j], indices[i]
-        end
-        for _, ci in ipairs(indices) do
-            local solution = puzzle.Solution[ci]
-            if not solution then continue end
-            local ordered = flowOrder(solution, puzzle.targetPairs[ci])
-            if not ordered or #ordered == 0 then continue end
-            puzzle.paths[ci] = {}
-            for _, node in ipairs(ordered) do
-                table.insert(puzzle.paths[ci], { row = node.row, col = node.col })
-                puzzle:updateGui()
-                task.wait(flow.nodeDelay)
-            end
-            task.wait(flow.lineDelay)
-            puzzle:checkForWin()
-        end
-    end
-
-    local hooked = false
-    local function setupFlowHook()
-        if hooked then return end
-        local modFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Modules")
-        local miniFolder = modFolder and modFolder:FindFirstChild("Minigames")
-        local fgFolder = miniFolder and miniFolder:FindFirstChild("FlowGameManager")
-        local fgModule = fgFolder and fgFolder:FindFirstChild("FlowGame")
-        if fgModule then
-            local ok, FG = pcall(require, fgModule)
-            if ok and FG and FG.new then
-                local orig = FG.new
-                FG.new = function(...)
-                    local p = orig(...)
-                    if flow.on then
-                        task.spawn(function()
-                            task.wait(0.3)
-                            flowSolve(p)
-                        end)
-                    end
-                    return p
-                end
-                hooked = true
-            end
-        end
-    end
-
-Feng:Toggle({
-    Name = "绘制修机",
-    Value = false,
-    Callback = function(on)
-        flow.on = on
-        if on and not hooked then
-            setupFlowHook()
-        end
-    end
-})
-
-Feng:Slider({
-    Name = "节点速度 (秒)",
-    Value = { 
-        Min = 0, 
-        Max = 1, 
-        Default = 0.04 
-    },
-    Rounding = 2,
-    Callback = function(v)
-        flow.nodeDelay = v
-    end
-})
-
-Feng:Slider({
-    Name = "线暂停 (秒)",
-    Value = { 
-        Min = 0, 
-        Max = 1, 
-        Default = 0.60 
-    },
-    Rounding = 2,
-    Callback = function(v)
-        flow.lineDelay = v
-    end
-})
-
-Feng:Divider()
-Feng:Toggle({
-    Name = "自动修复发电机",
-    Value = false,
-    Callback = function(value)
-        vu2.autoRepairActive = value
-    end
-})
-
-    local function findNearestGenerator()
-        local character = game.Players.LocalPlayer.Character
-        if not character then return nil end
-        local root = character:FindFirstChild("HumanoidRootPart")
-        if not root then return nil end
-
-        local generators = {}
-        local map = workspace:FindFirstChild("Map")
-        if map then
-            local ingame = map:FindFirstChild("Ingame")
-            if ingame then
-                local mapFolder = ingame:FindFirstChild("Map")
-                if mapFolder then
-                    for _, obj in pairs(mapFolder:GetChildren()) do
-                        if obj.Name == "Generator" then
-                            table.insert(generators, obj)
-                        end
-                    end
-                end
-            end
-        end
-
-        local nearest, nearestDist = nil, math.huge
-        for _, gen in pairs(generators) do
-            local part = gen:FindFirstChildWhichIsA("BasePart")
-            if part then
-                local dist = (root.Position - part.Position).Magnitude
-                if dist < nearestDist then
-                    nearest, nearestDist = gen, dist
-                end
-            end
-        end
-        return nearest
-    end
-
-    local function repairGenerator(generator)
-        if not generator then return false end
-        local remotes = generator:FindFirstChild("Remotes")
-        if remotes then
-            local re = remotes:FindFirstChild("RE")
-            if re and re:IsA("RemoteEvent") then
-                re:FireServer()
-                return true
-            end
-        end
-        return false
-    end
-
-    spawn(function()
-        while wait() do
-            if vu2.autoRepairActive then
-                local generator = findNearestGenerator()
-                if generator then
-                    repairGenerator(generator)
-                    wait(vu4.repairCheckInterval)
-                end
-            end
-            wait(0.1)
-        end
-    end)
-
-Feng:Button({
-    Name = "完成所有发电机",
-    Callback = function()
-        pcall(function()
-            local gameMap = workspace:FindFirstChild("Map")
-            if not (gameMap and gameMap:FindFirstChild("Ingame") and gameMap.Ingame:FindFirstChild("Map")) then
-                return
-            end
-
-            for _, v in ipairs(gameMap.Ingame.Map:GetChildren()) do
-                if v.Name == "Generator" and v:FindFirstChild("Progress") and v.Progress.Value < 100 then
-                    local positions = v:FindFirstChild("Positions")
-                    if positions then
-                        local center = positions:FindFirstChild("Center")
-                        local right = positions:FindFirstChild("Right")
-                        local left = positions:FindFirstChild("Left")
-                        if center and right and left then
-                            local function occupied(pos)
-                                local folder = workspace:FindFirstChild("Players")
-                                local survivors = folder and folder:FindFirstChild("Survivors")
-                                if not survivors then return false end
-                                for _, sv in ipairs(survivors:GetChildren()) do
-                                    if sv ~= game.Players.LocalPlayer and sv:FindFirstChild("HumanoidRootPart") then
-                                        if (sv.HumanoidRootPart.Position - pos).Magnitude <= 6 then
-                                            return true
-                                        end
-                                    end
-                                end
-                                return false
-                            end
-
-                            local centerOccupied = occupied(center.Position)
-                            local rightOccupied = occupied(right.Position)
-                            local leftOccupied = occupied(left.Position)
-
-                            if not (centerOccupied and rightOccupied and leftOccupied) then
-                                local char = game.Players.LocalPlayer.Character
-                                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                                if hrp then
-                                    if not centerOccupied then
-                                        hrp.CFrame = center.CFrame
-                                    elseif not rightOccupied then
-                                        hrp.CFrame = right.CFrame
-                                    else
-                                        hrp.CFrame = left.CFrame
-                                    end
-                                end
-                                task.wait(0.2)
-
-                                local s2, r2 = pcall(function()
-                                    return v.Remotes.RF:InvokeServer("Enter")
-                                end)
-                                if s2 and r2 == "fixing" then
-                                    for _ = 1, 4 do
-                                        if v.Progress.Value >= 100 then break end
-                                        pcall(function()
-                                            v.Remotes.RE:FireServer()
-                                        end)
-                                        task.wait(1.4)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end)
-    end
-})
-end
-
-local FengYu = Window:Tab("访客1337", "101150016240183")
-
-local Feng = FengYu:Section({
-    Name = "访客1337",
-    SubName = "强大？",
-    Logo = "101150016240183",
-    open = true,
-})
-
-Feng:Button({
-    Name = "格挡脚本",
-    Locked = true,
-    LockedTitle = "维护中",
-    Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/BrotherDou/max/refs/heads/main/Auto.lua"))()
-    end
-})
-
-local FengYu = Window:Tab("机会", "96522474394555")
-
-local Feng = FengYu:Section({
-    Name = "机会",
-    SubName = "这是你最后的机会",
-    Logo = "96522474394555",
+    Name = "碰撞箱扩展",
+    SubName = "手臂设置",
+    Logo = "84082094395188",
     open = true,
 })
 
 do
-    local CoinflipSettings = {
-        Enabled = false,
-        TargetCharge = 3,
-    }
-    local lastCoinflipTime = 0
-    local coinflipCooldown = 2
-    local function readCoinflipChargesText()
-        local ok, txt = pcall(function()
-            local mainUI = game.Players.LocalPlayer:FindFirstChild("PlayerGui") and game.Players.LocalPlayer.PlayerGui:FindFirstChild("MainUI")
-            if not mainUI then return nil end
-            local abil = mainUI:FindFirstChild("AbilityContainer")
-            if not abil then return nil end
-            local coin = abil:FindFirstChild("Reroll")
-            if not coin then return nil end
-            local chargesLabel = coin:FindFirstChild("Charges")
-            if not chargesLabel then return nil end
-            return tostring(chargesLabel.Text)
-        end)
-        if ok then return txt end
-        return nil
-    end
-
-    task.spawn(function()
-        while true do
-            task.wait(0.5)
-            if not CoinflipSettings.Enabled then continue end
-
-            local now = tick()
-            if now - lastCoinflipTime < coinflipCooldown then continue end
-
-            local isChance = false
-            local playersFolder = workspace:FindFirstChild("Players")
-            local survFolder = playersFolder and playersFolder:FindFirstChild("Survivors")
-            if survFolder then
-                for _, surv in ipairs(survFolder:GetChildren()) do
-                    if surv:GetAttribute("Username") == game.Players.LocalPlayer.Name and surv.Name == "Chance" then
-                        isChance = true
-                        break
-                    end
-                end
-            end
-            if not isChance then continue end
-
-            local charges = tonumber(readCoinflipChargesText())
-            if charges and charges < CoinflipSettings.TargetCharge then
-                lastCoinflipTime = now
-                pcall(function()
-                    local args = {
-                        "UseActorAbility",
-                        { buffer.fromstring("\003\b\000\000\000CoinFlip") }
-                    }
-                    game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("Network"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
-                end)
-            end
-        end
-    end)
-
-    local ChanceAimbot = {
-        Enabled = false,
-        Prediction = false,
-        Range = 100,
-    }
-
-    local oneShootAnims = {"73921036900313", "111384272984267", "90499469533503", "133491532453922"}
-
-    local function isFlintlockVisible(char)
-        if not char then return false end
-        local tool = char:FindFirstChildOfClass("Tool")
-        if tool and (string.lower(tool.Name):find("flintlock") or string.lower(tool.Name):find("revolver") or string.lower(tool.Name):find("gun")) then
-            return true
-        end
-        local flint = char:FindFirstChild("Flintlock", true)
-        if not flint then return false end
-        if not (flint:IsA("BasePart") or flint:IsA("MeshPart") or flint:IsA("UnionOperation")) then
-            flint = flint:FindFirstChildWhichIsA("BasePart", true)
-            if not flint then return false end
-        end
-        return flint.Transparency < 1
-    end
-
-    local chanceKillersCache = {}
-    local function updateChanceKillers()
-        local playersFolder = workspace:FindFirstChild("Players")
-        if playersFolder then
-            local kFolder = playersFolder:FindFirstChild("Killers")
-            if kFolder then
-                local list = {}
-                for _, k in ipairs(kFolder:GetChildren()) do
-                    if k:GetAttribute("Username") then
-                        table.insert(list, k)
-                    end
-                end
-                chanceKillersCache = list
-            end
-        end
-    end
-
-    task.spawn(function()
-        while true do
-            updateChanceKillers()
-            task.wait(0.25)
-        end
-    end)
-
-    local function isLocalPlayerChance()
-        local char = game.Players.LocalPlayer.Character
-        if not char then return false end
-        local survivorsFolder = workspace:FindFirstChild("Players") and workspace.Players:FindFirstChild("Survivors")
-        if not survivorsFolder then return false end
-        for _, surv in ipairs(survivorsFolder:GetChildren()) do
-            if surv == char and surv.Name == "Chance" then
-                return true
-            end
-        end
-        return false
-    end
-
-    local function isOneShootAnimating(char)
-        if not char then return false end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        local animator = hum and hum:FindFirstChildOfClass("Animator")
-        if animator then
-            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-                local id = tostring(track.Animation and track.Animation.AnimationId or ""):match("%d+")
-                if id then
-                    for _, animId in ipairs(oneShootAnims) do
-                        if id == animId then
-                            return true
-                        end
-                    end
-                end
-            end
-        end
-        return false
-    end
-
-    task.spawn(function()
-        while true do
-            task.wait(0.05)
-            if not ChanceAimbot.Enabled then continue end
-
-            local lp = game.Players.LocalPlayer
-            local char = lp.Character
-            if not char then continue end
-            if not isLocalPlayerChance() then continue end
-
-            local root = char:FindFirstChild("HumanoidRootPart")
-            if not root then continue end
-
-            local isShooting = isOneShootAnimating(char) or isFlintlockVisible(char)
-            if not isShooting then continue end
-
-            local target = nil
-            local shortestDist = ChanceAimbot.Range
-            for _, killer in ipairs(chanceKillersCache) do
-                local kRoot = killer:FindFirstChild("HumanoidRootPart")
-                if kRoot then
-                    local dist = (kRoot.Position - root.Position).Magnitude
-                    if dist <= shortestDist then
-                        shortestDist = dist
-                        target = kRoot
-                    end
-                end
-            end
-
-            if target then
-                local targetPos = target.Position
-
-                if ChanceAimbot.Prediction then
-                    local velocity = target.Velocity or target.AssemblyLinearVelocity
-                    if velocity then
-                        local ping = 0
-                        pcall(function() ping = lp:GetNetworkPing() end)
-                        local dist = (target.Position - root.Position).Magnitude
-                        local raycastSpeed = 1000
-                        local raycastDelay = dist / raycastSpeed
-                        local totalDelay = ping + raycastDelay
-                        local dropoff = math.clamp(dist / ChanceAimbot.Range, 0.1, 1)
-                        local distanceBoost = 1 + (dist / ChanceAimbot.Range) * 0.25
-                        local predictionFactor = totalDelay * 1.2 * dropoff * distanceBoost
-                        targetPos = targetPos + (velocity * predictionFactor)
-                    end
-                end
-
-                root.CFrame = CFrame.lookAt(root.Position, Vector3.new(targetPos.X, root.Position.Y, targetPos.Z))
-            end
-        end
-    end)
-
-Feng:Toggle({
-    Name = "启用机会射击自瞄",
-    Value = false,
-    Callback = function(v)
-        ChanceAimbot.Enabled = v
-    end
-})
-
-Feng:Toggle({
-    Name = "瞄准预测",
-    Value = false,
-    Callback = function(v)
-        ChanceAimbot.Prediction = v
-    end
-})
-
-Feng:Slider({
-    Name = "射击半径",
-    Value = { 
-        Min = 20, 
-        Max = 1000, 
-        Default = 100 
-    },
-    Callback = function(v)
-        ChanceAimbot.Range = v
-    end
-})
-
-Feng:Divider()
-
-Feng:Toggle({
-    Name = "自动抛硬币翻转",
-    Value = false,
-    Callback = function(v)
-        CoinflipSettings.Enabled = v
-    end
-})
-
-Feng:Dropdown({
-    Name = "硬币充能层数",
-    Values = {"1", "2", "3"},
-    Value = "3",
-    Multi = false,
-    Callback = function(val)
-        CoinflipSettings.TargetCharge = tonumber(val)
-    end
-})
-end
-
-local FengYu = Window:Tab("两次", "86434410365514")
-
-local Feng = FengYu:Section({
-    Name = "两次",
-    SubName = "蚊子来了！！！",
-    Logo = "86434410365514",
-    open = true,
-})
-
-do
-    local DEFAULT_PROXIMITY   = 8
-    local DEFAULT_DURATION    = 0.45
-    local BEHIND_DISTANCE     = 3.5
-    local CHECK_INTERVAL      = 0.05
-    local COOLDOWN            = 5
-    local LERP_SPEED          = 0.55
-    local BEHIND_CONE_DEGREES = 70
-    local REMOTE_FIRE_DELAY   = 0.0
-    local AIM_SNAP_DELAY      = 0.25
-    local DEBUG_LINE          = true
-
-    local isRunning     = true
-    local enabled       = false
-    local daggerEnabled = false
-    local rangeMode     = "Behind"
-    local backstabType  = "Lerp"
-    local proximity     = DEFAULT_PROXIMITY
-    local lastTrigger   = 0
-    local aimRefCount   = 0
-    local debugBeam     = nil
-
     local Players = game:GetService("Players")
+    local LP = Players.LocalPlayer
     local RunService = game:GetService("RunService")
     local Workspace = game:GetService("Workspace")
-    local clientPlayer = Players.LocalPlayer
 
-    local function getCharacter()
-        return clientPlayer.Character or clientPlayer.CharacterAdded:Wait()
-    end
+    local hitboxExtender = {
+        enabled = false,
+        range = 10,
+    }
 
-    local function getDaggerButton()
-        local pg = clientPlayer:FindFirstChild("PlayerGui")
-        if not pg then return nil end
-        local mainUI = pg:FindFirstChild("MainUI")
-        if not mainUI then return nil end
-        local container = mainUI:FindFirstChild("AbilityContainer")
-        if not container then return nil end
-        return container:FindFirstChild("Dagger")
-    end
-
-    local function getDaggerCooldown()
-        local btn = getDaggerButton()
-        if not btn then return nil end
-        return btn:FindFirstChild("CooldownTime") or btn:FindFirstChild("Cooldown") or
-               btn:FindFirstChildWhichIsA("NumberValue") or btn:FindFirstChildWhichIsA("StringValue") or
-               btn:FindFirstChild("CooldownLabel") or btn:FindFirstChild("Timer") or btn:FindFirstChild("CD")
-    end
-
-    local function readCooldownValue(cdObj)
-        if not cdObj then return nil end
-        if cdObj:IsA("NumberValue")  then return cdObj.Value end
-        if cdObj:IsA("StringValue")  then return tonumber(cdObj.Value) end
-        if cdObj:IsA("TextLabel") or cdObj:IsA("TextBox") then return tonumber(cdObj.Text) end
-        if type(cdObj.Value) == "number" then return cdObj.Value end
-        if type(cdObj.Value) == "string" then return tonumber(cdObj.Value) end
-        if cdObj.Text ~= nil             then return tonumber(cdObj.Text) end
-        return nil
-    end
-
-    local function getKillersFolder()
-        local playersFolder = Workspace:FindFirstChild("Players")
-        if not playersFolder then return nil end
-        return playersFolder:FindFirstChild("Killers")
-    end
-
-    local function isValidKillerModel(model)
-        if not model then return false end
-        local hrp      = model:FindFirstChild("HumanoidRootPart")
-        local humanoid = model:FindFirstChildWhichIsA("Humanoid")
-        return hrp and humanoid and humanoid.Health and humanoid.Health > 0
-    end
-
-    local function tryActivateButton(btn)
-        if not btn then return false end
-        pcall(function() if btn.Activate then btn:Activate() end end)
-        local ok, conns = pcall(function()
-            if type(getconnections) == "function" and btn.MouseButton1Click then
-                return getconnections(btn.MouseButton1Click)
-            end
-            return nil
-        end)
-        if ok and conns then
-            for _, conn in ipairs(conns) do
-                pcall(function()
-                    if conn.Function then conn.Function()
-                    elseif conn.func  then conn.func()
-                    elseif conn.Fire  then conn.Fire() end
-                end)
-            end
-        end
-        pcall(function() if btn.Activated then btn.Activated:Fire() end end)
-        return true
-    end
-
-    local function setAutoRotate(value)
-        local char = clientPlayer.Character
-        if not char then return end
-        local hum = char:FindFirstChildWhichIsA("Humanoid")
-        if hum then pcall(function() hum.AutoRotate = value end) end
-    end
-
-    local function isPlayerBehindKiller(hrp, khrp, dist)
-        if dist > proximity or dist < 0.01 then return false end
-        local toPlayer = (hrp.Position - khrp.Position).Unit
-        local killerBack = -khrp.CFrame.LookVector
-        local dot = toPlayer:Dot(killerBack)
-        local threshold = math.cos(math.rad(BEHIND_CONE_DEGREES))
-        return dot >= threshold
-    end
-
-    local function removeDebugLine()
-        if debugBeam then
-            pcall(function() debugBeam:Destroy() end)
-            debugBeam = nil
-        end
-    end
-
-    local function drawDebugLine(hrp, khrp, isValid)
-        if not DEBUG_LINE then removeDebugLine(); return end
-        pcall(function()
-            local att0 = hrp:FindFirstChild("__BSAtt0") or Instance.new("Attachment", hrp)
-            att0.Name = "__BSAtt0"
-            att0.Position = Vector3.zero
-
-            local att1 = khrp:FindFirstChild("__BSAtt1") or Instance.new("Attachment", khrp)
-            att1.Name = "__BSAtt1"
-            att1.Position = Vector3.zero
-
-            if not debugBeam then
-                local b = Instance.new("Beam")
-                b.Name           = "__BSBeam"
-                b.Attachment0    = att0
-                b.Attachment1    = att1
-                b.FaceCamera     = true
-                b.Width0         = 0.08
-                b.Width1         = 0.08
-                b.Segments       = 1
-                b.LightEmission  = 1
-                b.LightInfluence = 0
-                b.Parent         = hrp
-                debugBeam = b
-            end
-
-            debugBeam.Attachment0 = att0
-            debugBeam.Attachment1 = att1
-            debugBeam.Color = isValid
-                and ColorSequence.new(Color3.fromRGB(50, 220, 100))
-                or  ColorSequence.new(Color3.fromRGB(220, 80, 60))
-        end)
-    end
-
-    local function activateForKiller(killerModel, duration)
-        if not killerModel or not isRunning then return end
-        local char     = getCharacter()
-        local humanoid = char and char:FindFirstChildWhichIsA("Humanoid")
-        local hrp      = char and char:FindFirstChild("HumanoidRootPart")
-        local khrp     = killerModel:FindFirstChild("HumanoidRootPart")
-        if not humanoid or not hrp or not khrp then return end
-
-        aimRefCount = aimRefCount + 1
-        if aimRefCount == 1 then pcall(function() humanoid.AutoRotate = false end) end
-
-        local function finishAiming()
-            aimRefCount = math.max(0, aimRefCount - 1)
-            if aimRefCount == 0 then setAutoRotate(true) end
-        end
-
-        local function computeBehindCFrame()
-            local kCF       = khrp.CFrame
-            local behindPos = kCF.Position - (kCF.LookVector.Unit * BEHIND_DISTANCE)
-            behindPos = Vector3.new(behindPos.X, kCF.Position.Y, behindPos.Z)
-            return CFrame.new(behindPos, behindPos + kCF.LookVector.Unit)
-        end
-
-        if backstabType == "Lerp" then
-            local t0 = os.clock()
-            local conn
-            conn = RunService.Heartbeat:Connect(function()
-                if not isRunning or os.clock() - t0 >= duration then
-                    conn:Disconnect(); finishAiming(); return
-                end
-                if khrp and hrp then
-                    hrp.CFrame = hrp.CFrame:Lerp(computeBehindCFrame(), LERP_SPEED)
-                end
-            end)
-        elseif backstabType == "Teleport" then
-            pcall(function() hrp.CFrame = computeBehindCFrame() end)
-            task.delay(duration, finishAiming)
-        elseif backstabType == "Aim" then
-            local t0 = os.clock()
-            local conn
-            conn = RunService.Heartbeat:Connect(function()
-                if not isRunning or os.clock() - t0 >= duration then
-                    conn:Disconnect(); finishAiming(); return
-                end
-                if khrp and hrp then
-                    local stabTarget = khrp.Position + khrp.CFrame.LookVector * 2
-                    local aimPos     = Vector3.new(stabTarget.X, hrp.Position.Y, stabTarget.Z)
-                    hrp.CFrame = hrp.CFrame:Lerp(
-                        CFrame.new(hrp.Position, aimPos),
-                        LERP_SPEED * 1.8
-                    )
-                end
-            end)
-        end
+    local function studsToPower(studs)
+        return studs * 6
     end
 
     task.spawn(function()
-        while isRunning do
-            task.wait(CHECK_INTERVAL)
-            if not enabled or not isRunning then continue end
+        while true do
+            RunService.Heartbeat:Wait()
 
-            local killersFolder = getKillersFolder()
-            if not killersFolder then continue end
+            if hitboxExtender.enabled then
+                local char = LP.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if not hrp then continue end
 
-            local char = getCharacter()
-            local hrp  = char and char:FindFirstChild("HumanoidRootPart")
-            if not hrp then continue end
+                local myHitboxDetected = false
+                local hitboxesFolder = Workspace:FindFirstChild("Hitboxes")
+                local myUsername = char:GetAttribute("Username") or LP.Name
+                local myHitboxName = myUsername .. "Hitbox"
 
-            local triggered = false
-
-            for _, killer in pairs(killersFolder:GetChildren()) do
-                if triggered then break end
-                if not isValidKillerModel(killer) then continue end
-
-                local khrp = killer:FindFirstChild("HumanoidRootPart")
-                local dist = (khrp.Position - hrp.Position).Magnitude
-
-                if dist <= proximity then
-                    local valid = isPlayerBehindKiller(hrp, khrp, dist)
-                    drawDebugLine(hrp, khrp, valid)
-
-                    if valid and rangeMode ~= "Around" and os.clock() - lastTrigger >= COOLDOWN then
-                        local cdNum = readCooldownValue(getDaggerCooldown())
-                        if not (cdNum and cdNum > 0.1) then
-                            lastTrigger = os.clock()
-                            triggered   = true
-
-                            task.spawn(function()
-                                activateForKiller(killer, DEFAULT_DURATION)
-                                if REMOTE_FIRE_DELAY > 0 then task.wait(REMOTE_FIRE_DELAY) end
-                                if daggerEnabled then tryActivateButton(getDaggerButton()) end
-                                if AIM_SNAP_DELAY > 0 then
-                                    task.wait(AIM_SNAP_DELAY)
-                                    if not isRunning then return end
-                                    local khrp2 = killer:FindFirstChild("HumanoidRootPart")
-                                    local char2 = getCharacter()
-                                    local hrp2  = char2 and char2:FindFirstChild("HumanoidRootPart")
-                                    if khrp2 and hrp2 then
-                                        local behindPos = khrp2.CFrame.Position - (khrp2.CFrame.LookVector.Unit * BEHIND_DISTANCE)
-                                        behindPos = Vector3.new(behindPos.X, hrp2.Position.Y, behindPos.Z)
-                                        hrp2.CFrame = CFrame.new(behindPos, behindPos + khrp2.CFrame.LookVector.Unit)
-                                    end
-                                end
-                            end)
+                if hitboxesFolder and char then
+                    for _, part in ipairs(hitboxesFolder:GetChildren()) do
+                        if part.Name == myHitboxName then
+                            if hrp and (part.Position - hrp.Position).Magnitude <= 15 then
+                                myHitboxDetected = true
+                            end
+                            break
                         end
                     end
-                elseif DEBUG_LINE then
-                    removeDebugLine()
                 end
 
-                if rangeMode == "Around" and dist <= proximity and os.clock() - lastTrigger >= COOLDOWN and not triggered then
-                    local cdNum = readCooldownValue(getDaggerCooldown())
-                    if not (cdNum and cdNum > 0.1) then
-                        lastTrigger = os.clock()
-                        triggered   = true
-                        task.spawn(function()
-                            activateForKiller(killer, DEFAULT_DURATION)
-                            if REMOTE_FIRE_DELAY > 0 then task.wait(REMOTE_FIRE_DELAY) end
-                            if daggerEnabled then tryActivateButton(getDaggerButton()) end
-                            if AIM_SNAP_DELAY > 0 then
-                                task.wait(AIM_SNAP_DELAY)
-                                if not isRunning then return end
-                                local khrp2 = killer:FindFirstChild("HumanoidRootPart")
-                                local char2 = getCharacter()
-                                local hrp2  = char2 and char2:FindFirstChild("HumanoidRootPart")
-                                if khrp2 and hrp2 then
-                                    local tp = Vector3.new(khrp2.Position.X, hrp2.Position.Y, khrp2.Position.Z)
-                                    hrp2.CFrame = CFrame.new(hrp2.Position, tp)
-                                end
-                            end
-                        end)
+                if myHitboxDetected and char and hrp and hrp.Parent then
+                    local velocity = hrp.AssemblyLinearVelocity
+                    if velocity.Magnitude > 0.5 then
+                        local distance = studsToPower(hitboxExtender.range)
+                        local moveDir = velocity.Magnitude > 0 and velocity.Unit or hrp.CFrame.LookVector
+                        local newVelocity = velocity + (moveDir * distance)
+                        hrp.AssemblyLinearVelocity = Vector3.new(newVelocity.X, velocity.Y, newVelocity.Z)
+
+                        RunService.RenderStepped:Wait()
+                        if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+                            LP.Character.HumanoidRootPart.AssemblyLinearVelocity = velocity
+                        end
                     end
                 end
             end
-
-            if not triggered then removeDebugLine() end
         end
     end)
 
 Feng:Toggle({
-    Name = "自动背刺",
+    Name = "启用碰撞箱扩展",
     Value = false,
-    Callback = function(state) 
-        enabled = state 
-    end
-})
-
-Feng:Toggle({
-    Name = "背刺时自动攻击",
-    Value = false,
-    Callback = function(state) 
-        daggerEnabled = state 
-    end
-})
-
-Feng:Toggle({
-    Name = "调试射线",
-    Value = true,
-    Callback = function(state)
-      DEBUG_LINE = state
-      if not state then 
-          removeDebugLine() 
-      end
-    end
-})
-
-Feng:Dropdown({
-    Name = "背刺类型",
-    Values = {
-        "缓动位移", 
-        "瞬移", 
-        "锁定瞄准"
-    },
-    Value   = "缓动位移",
-    Callback = function(value)
-      if value == "缓动位移" then backstabType = "Lerp"
-          elseif value == "瞬移" then backstabType = "Teleport"
-          elseif value == "锁定瞄准" then backstabType = "Aim" 
-      end
-    end
-})
-
-Feng:Dropdown({
-    Name = "范围模式",
-    Values = {"全范围", "背后"},
-    Value = "背后",
-    Callback = function(value)
-      if value == "全范围" then rangeMode = "Around"
-         else rangeMode = "Behind" 
-      end
+    Callback = function(v)
+        hitboxExtender.enabled = v
     end
 })
 
 Feng:Slider({
-    Name = "检测范围",
-    Value = { 
-        Min = 1, 
-        Max = 30, 
-        Default = DEFAULT_PROXIMITY 
+    Name = "碰撞箱长度",
+    Value = {
+        Min = 0,
+        Max = 50,
+        Default = 10
     },
-    Callback = function(value)
-        proximity = value 
-    end
-})
-
-Feng:Slider({
-    Name = "背后瞬移距离",
-    Value = { 
-        Min = 0.5, 
-        Max = 10, 
-        Default = BEHIND_DISTANCE 
-    },
-    Callback = function(value)
-        BEHIND_DISTANCE = value 
-    end
-})
-
-Feng:Slider({
-    Name = "背后判定锥角",
-    Value = { 
-        Min = 10, 
-        Max = 180, 
-        Default = BEHIND_CONE_DEGREES 
-    },
-    Callback = function(value)
-        BEHIND_CONE_DEGREES = value 
-    end
-})
-
-Feng:Slider({
-    Name = "远程触发延迟",
-    Value = { 
-        Min = 0.00, 
-        Max = 0.50, 
-        Default = REMOTE_FIRE_DELAY 
-    },
-    Callback = function(value)
-        REMOTE_FIRE_DELAY = value 
-    end
-})
-
-Feng:Slider({
-    Name = "瞄准硬锁定延迟",
-    Value = { 
-        Min = 0.00, 
-        Max = 0.30, 
-        Default = AIM_SNAP_DELAY 
-    },
-    Callback = function(value)
-        AIM_SNAP_DELAY = value 
+    Callback = function(v)
+        hitboxExtender.range = math.floor(v)
     end
 })
 end
 
-local FengYu = Window:Tab("维罗妮卡", "96756659203467")
-
 local Feng = FengYu:Section({
-    Name = "维罗妮卡",
-    SubName = "滑板少年宫颈癌筛查",
-    Logo = "96756659203467",
+    Name = "汽车拐弯",
+    SubName = "打开[准心]才有效果",
+    Logo = "104851651453042",
     open = true,
-})
-
-local VeronicaSk8Control = false
-Feng:Toggle({
-    Name = "启用滑板控制",
-    Value = false,
-    Callback = function(state)
-        VeronicaSk8Control = state
-    end
 })
 
 do
@@ -3100,404 +3367,968 @@ do
     local UserInputService = game:GetService("UserInputService")
     local Players = game:GetService("Players")
     local LP = Players.LocalPlayer
+    local Camera = workspace.CurrentCamera
 
-    local veronicaSk8Anims = {
-        "130352140726486",
-        "122542233810574",
-        "117058860640843",
-        "123803922491274"
+    local dashTurn = {
+        sixer = false,
+        coolkid = false,
+        noli = false,
+        noliActive = false,
+        noliOrigWalkSpeed = nil,
+        noliConn = nil,
     }
 
-    local controlChargeActive = false
-    local overrideConnection = nil
-    local savedHumanoidState = {}
-    local hasEverEnabledShiftlock = false
-
-    local function getHumanoid()
-        if not LP or not LP.Character then return nil end
-        return LP.Character:FindFirstChildOfClass("Humanoid")
+    local function getCameraInputDir()
+        local cam = Camera
+        local cf = cam.CFrame
+        local camFwd = Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z)
+        local camRight = Vector3.new(cf.RightVector.X, 0, cf.RightVector.Z)
+        local x, z = 0, 0
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then z = z - 1 end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down) then z = z + 1 end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then x = x - 1 end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then x = x + 1 end
+        local dir = camFwd * -z + camRight * x
+        if dir.Magnitude > 0.01 then return dir.Unit end
+        if camFwd.Magnitude > 0.01 then return camFwd.Unit end
+        return Vector3.new(0, 0, -1)
     end
 
-    local function saveHumState(hum)
-        if not hum or savedHumanoidState[hum] then return end
-        local s = {}
-        pcall(function()
-            s.WalkSpeed = hum.WalkSpeed
-            local ok, _ = pcall(function() s.JumpPower = hum.JumpPower end)
-            if not ok then pcall(function() s.JumpPower = hum.JumpHeight end) end
-            local ok2, ar = pcall(function() return hum.AutoRotate end)
-            if ok2 then s.AutoRotate = ar end
-            s.PlatformStand = hum.PlatformStand
-        end)
-        savedHumanoidState[hum] = s
+    local function sixerAirStrafeStep()
+        if not dashTurn.sixer then return end
+        local char = LP.Character
+        if not char then return end
+        if char:GetAttribute("PursuitState") ~= "Dashing" then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then return end
+        if hum.FloorMaterial ~= Enum.Material.Air then return end
+        local cam = Camera
+        local flat = cam.CFrame.LookVector * Vector3.new(1, 0, 1)
+        if flat.Magnitude < 0.01 then return end
+        flat = flat.Unit
+        local vel = hrp.AssemblyLinearVelocity
+        local hVel = Vector3.new(vel.X, 0, vel.Z)
+        local hSpeed = hVel.Magnitude
+        if hSpeed < 0.1 then return end
+        local newH = hVel:Lerp(flat * hSpeed, 1)
+        hrp.AssemblyLinearVelocity = Vector3.new(newH.X, vel.Y, newH.Z)
     end
 
-    local function restoreHumState(hum)
-        if not hum then return end
-        local s = savedHumanoidState[hum]
-        if not s then return end
-        pcall(function()
-            if s.WalkSpeed ~= nil then hum.WalkSpeed = s.WalkSpeed end
-            if s.JumpPower ~= nil then
-                local ok, _ = pcall(function() hum.JumpPower = s.JumpPower end)
-                if not ok then pcall(function() hum.JumpHeight = s.JumpPower end) end
+    local function coolkidDashTurnStep(dt)
+        if not dashTurn.coolkid then return end
+        local char = LP.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not char or not hrp then return end
+        if char:GetAttribute("FootstepsMuted") ~= true then return end
+        local dir = getCameraInputDir()
+        local lv = hrp:FindFirstChildWhichIsA("LinearVelocity")
+        if lv then lv.LineDirection = dir end
+        if dir.Magnitude > 0.01 then
+            local targetRot = CFrame.new(hrp.Position, hrp.Position + dir).Rotation
+            hrp.CFrame = CFrame.new(hrp.Position) * hrp.CFrame.Rotation:Lerp(targetRot, math.min(dt * 16, 1))
+        end
+    end
+
+    local function noliStartOverride()
+        if dashTurn.noliActive then return end
+        dashTurn.noliActive = true
+        dashTurn.noliConn = RunService.RenderStepped:Connect(function()
+            if not dashTurn.noli then
+                noliStopOverride()
+                return
             end
-            if s.AutoRotate ~= nil then pcall(function() hum.AutoRotate = s.AutoRotate end) end
-            if s.PlatformStand ~= nil then hum.PlatformStand = s.PlatformStand end
-        end)
-        savedHumanoidState[hum] = nil
-    end
-
-    local function startOverride()
-        if controlChargeActive then return end
-        local hum = getHumanoid()
-        if not hum then return end
-        controlChargeActive = true
-        saveHumState(hum)
-
-        pcall(function()
+            local char = LP.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if not hum or not root then return end
+            if not dashTurn.noliOrigWalkSpeed then dashTurn.noliOrigWalkSpeed = hum.WalkSpeed end
             hum.WalkSpeed = 60
             hum.AutoRotate = false
-        end)
-
-        overrideConnection = RunService.RenderStepped:Connect(function()
-            local humanoid = getHumanoid()
-            local rootPart = humanoid and humanoid.Parent and humanoid.Parent:FindFirstChild("HumanoidRootPart")
-            if not humanoid or not rootPart then return end
-
-            pcall(function()
-                humanoid.WalkSpeed = 60
-                humanoid.AutoRotate = false
-            end)
-
-            local cam = workspace.CurrentCamera
-            if cam then
-                local lookVec = cam.CFrame.LookVector
-                local flat = Vector3.new(lookVec.X, 0, lookVec.Z)
-                if flat.Magnitude > 0.01 then
-                    rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + flat.Unit)
-                end
-            end
-
-            local direction = rootPart.CFrame.LookVector
-            local horizontal = Vector3.new(direction.X, 0, direction.Z)
-            if horizontal.Magnitude > 0 then
-                humanoid:Move(horizontal.Unit)
-            else
-                humanoid:Move(Vector3.new(0, 0, 0))
-            end
+            local horiz = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+            if horiz.Magnitude > 0 then hum:Move(horiz.Unit) end
         end)
     end
 
-    local function stopOverride()
-        if not controlChargeActive then return end
-        controlChargeActive = false
-
-        if overrideConnection then
-            pcall(function() overrideConnection:Disconnect() end)
-            overrideConnection = nil
+    local function noliStopOverride()
+        if not dashTurn.noliActive then return end
+        dashTurn.noliActive = false
+        if dashTurn.noliConn then
+            dashTurn.noliConn:Disconnect()
+            dashTurn.noliConn = nil
         end
-
-        local hum = getHumanoid()
+        local char = LP.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
         if hum then
-            pcall(function()
-                restoreHumState(hum)
-                hum:Move(Vector3.new(0, 0, 0))
-            end)
+            hum.WalkSpeed = dashTurn.noliOrigWalkSpeed or 16
+            hum.AutoRotate = true
+            pcall(function() hum:Move(Vector3.new(0, 0, 0)) end)
         end
+        dashTurn.noliOrigWalkSpeed = nil
     end
 
-    local function detectChargeAnimation()
-        local hum = getHumanoid()
-        if not hum then return false end
-        for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
-            local ok, animId = pcall(function()
-                return tostring(track.Animation and track.Animation.AnimationId or ""):match("%d+")
-            end)
-            if ok and animId and animId ~= "" then
-                for _, id in ipairs(veronicaSk8Anims) do
-                    if animId == id then
-                        return true
-                    end
+    RunService:BindToRenderStep("SixerAirStrafe", Enum.RenderPriority.Character.Value + 2, sixerAirStrafeStep)
+
+    local coolkidConn = nil
+    local function updateCoolkidDash()
+        if coolkidConn then coolkidConn:Disconnect() end
+        coolkidConn = RunService.RenderStepped:Connect(function(dt)
+            coolkidDashTurnStep(dt)
+        end)
+    end
+    updateCoolkidDash()
+
+    LP.CharacterAdded:Connect(function()
+        noliStopOverride()
+    end)
+
+    RunService.RenderStepped:Connect(function()
+        if not dashTurn.noli then
+            if dashTurn.noliActive then noliStopOverride() end
+            return
+        end
+        local char = LP.Character
+        if not char then return end
+        if char:GetAttribute("VoidRushState") == "Dashing" then
+            noliStartOverride()
+        else
+            noliStopOverride()
+        end
+    end)
+
+Feng:Toggle({
+    Name = "访客666 - 空中控制",
+    Value = false,
+    Callback = function(state)
+        dashTurn.sixer = state
+    end
+})
+
+Feng:Toggle({
+    Name = "酷小孩 - 冲刺控制",
+    Value = false,
+    Callback = function(state)
+        dashTurn.coolkid = state
+    end
+})
+
+Feng:Toggle({
+    Name = "诺利 - 冲刺控制",
+    Value = false,
+    Callback = function(state)
+        dashTurn.noli = state
+        if not state then noliStopOverride() end
+    end
+})
+end
+
+local Feng = FengYu:Section({
+    Name = "自瞄",
+    SubName = "靠近幸存者自动瞄准",
+    Logo = "79416567520364",
+    open = true,
+})
+
+do
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+    local LP = Players.LocalPlayer
+
+    local aim = {
+        on = false,
+        cooldown = 0.3,
+        lockTime = 0.4,
+        maxDist = 30,
+        smooth = 0.35,
+        targeting = false,
+        target = nil,
+        deathConn = nil,
+        autoRotate = nil,
+        lastFired = 0,
+        hum = nil,
+        hrp = nil,
+        cache = {},
+        cacheTime = 0,
+        cacheLife = 0.5,
+    }
+
+    local function aimIsKiller()
+        local char = LP.Character
+        if not char then return false end
+        local killersFolder = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Killers")
+        return killersFolder and char:IsDescendantOf(killersFolder)
+    end
+
+    local function aimRefreshChar(ch)
+        aim.hum = ch and ch:FindFirstChildOfClass("Humanoid")
+        aim.hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+    end
+
+    local function aimRefreshTargets()
+        local now = tick()
+        if now - aim.cacheTime < aim.cacheLife then return end
+        aim.cacheTime = now
+        aim.cache = {}
+        local survivorsFolder = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Survivors")
+        if not survivorsFolder then return end
+        for _, model in ipairs(survivorsFolder:GetChildren()) do
+            if model ~= LP.Character and model:IsA("Model") then
+                local h = model:FindFirstChildOfClass("Humanoid")
+                local r = model:FindFirstChild("HumanoidRootPart")
+                if h and r and h.Health > 0 then
+                    table.insert(aim.cache, r)
                 end
             end
         end
-        return false
+    end
+
+    local function aimNearest()
+        aimRefreshTargets()
+        if not aim.hrp or #aim.cache == 0 then return nil end
+        local best, bestDist = nil, math.huge
+        for _, r in ipairs(aim.cache) do
+            local d = (r.Position - aim.hrp.Position).Magnitude
+            if d < bestDist and d <= aim.maxDist then
+                bestDist = d
+                best = r
+            end
+        end
+        return best
+    end
+
+    local function aimUnlock()
+        if not aim.targeting then return end
+        if aim.deathConn then aim.deathConn:Disconnect(); aim.deathConn = nil end
+        if aim.autoRotate ~= nil and aim.hum then
+            aim.hum.AutoRotate = aim.autoRotate
+        end
+        aim.targeting = false
+        aim.target = nil
+    end
+
+    local function aimLock(rootPart)
+        if not rootPart or not rootPart.Parent or not aim.hum or not aim.hrp then return end
+        if aim.targeting and aim.target == rootPart then return end
+        aimUnlock()
+        aim.target = rootPart
+        aim.targeting = true
+        aim.autoRotate = aim.hum.AutoRotate
+        aim.hum.AutoRotate = false
+        local targetHumanoid = rootPart.Parent:FindFirstChildOfClass("Humanoid")
+        if targetHumanoid then
+            aim.deathConn = targetHumanoid.Died:Connect(aimUnlock)
+        end
+        task.delay(aim.lockTime, function()
+            if aim.target == rootPart then aimUnlock() end
+        end)
+    end
+
+    local function setupAimbotTrigger()
+        local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Modules")
+            and game.ReplicatedStorage.Modules:FindFirstChild("Network")
+            and game.ReplicatedStorage.Modules.Network:FindFirstChild("Network")
+            and game.ReplicatedStorage.Modules.Network.Network:FindFirstChild("RemoteEvent")
+        if not remote then return end
+
+        remote.OnClientEvent:Connect(function(...)
+            if not aim.on then return end
+            local args = {...}
+            if type(args[1]) ~= "string" then return end
+            local abilityName = args[1]
+            if abilityName:match("Ability") or abilityName:match("[QER]") or
+               abilityName == "Slash" or abilityName == "Dagger" or abilityName == "Charge" or
+               abilityName == "Stab" or abilityName == "Punch" then
+                if tick() - aim.lastFired < aim.cooldown then return end
+                aim.lastFired = tick()
+                if aimIsKiller() then
+                    local target = aimNearest()
+                    if target then aimLock(target) end
+                end
+            end
+        end)
+    end
+
+    LP.CharacterAdded:Connect(function(ch)
+        task.wait(0.5)
+        aimRefreshChar(ch)
+    end)
+    if LP.Character then
+        aimRefreshChar(LP.Character)
     end
 
     RunService.RenderStepped:Connect(function()
-        if not VeronicaSk8Control then
-            if controlChargeActive then
-                stopOverride()
-            end
-            return
-        end
-
-        local hum = getHumanoid()
-        if not hum then
-            if controlChargeActive then
-                stopOverride()
-            end
-            return
-        end
-
-        local isCharging = detectChargeAnimation()
-        local isCurrentlyShiftlock = (UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter) or
-                                    UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
-        if isCurrentlyShiftlock then
-            hasEverEnabledShiftlock = true
-        end
-        local isShiftlockActive = hasEverEnabledShiftlock or isCurrentlyShiftlock
-
-        if isCharging and isShiftlockActive then
-            if not controlChargeActive then
-                startOverride()
-            end
-        else
-            if controlChargeActive then
-                stopOverride()
-            end
+        if not aim.on or not aim.targeting or not aim.hrp or not aim.target then return end
+        if not aim.target.Parent then aimUnlock(); return end
+        local targetHumanoid = aim.target.Parent:FindFirstChildOfClass("Humanoid")
+        if not targetHumanoid or targetHumanoid.Health <= 0 then aimUnlock(); return end
+        local flat = Vector3.new(
+            aim.target.Position.X - aim.hrp.Position.X,
+            0,
+            aim.target.Position.Z - aim.hrp.Position.Z
+        ).Unit
+        if flat.Magnitude > 0 then
+            aim.hrp.CFrame = aim.hrp.CFrame:Lerp(
+                CFrame.new(aim.hrp.Position, aim.hrp.Position + flat),
+                aim.smooth
+            )
         end
     end)
 
-    LP.CharacterAdded:Connect(function()
-        if controlChargeActive then
-            stopOverride()
-        end
-        hasEverEnabledShiftlock = false
-    end)
+    setupAimbotTrigger()
+
+Feng:Toggle({
+    Name = "使用自瞄",
+    Value = aim.on,
+    Callback = function(state)
+        aim.on = state
+        if not state then aimUnlock() end
+    end
+})
+
+Feng:Slider({
+    Name = "冷却时间 (秒)",
+    Value = {
+        Min = 0.1,
+        Max = 2.0,
+        Default = aim.cooldown
+    },
+    Rounding = 1,
+    Callback = function(val)
+        aim.cooldown = val
+    end
+})
+
+Feng:Slider({
+    Name = "锁定时间 (秒)",
+    Value = {
+        Min = 0.1,
+        Max = 3.0,
+        Default = aim.lockTime
+    },
+    Rounding = 1,
+    Callback = function(val)
+        aim.lockTime = val
+    end
+})
+
+Feng:Slider({
+    Name = "最大距离",
+    Value = {
+        Min = 5,
+        Max = 100,
+        Default = aim.maxDist
+    },
+    Callback = function(val)
+        aim.maxDist = val
+    end
+})
+
+Feng:Slider({
+    Name = "旋转平滑度",
+    Value = {
+        Min = 0.05,
+        Max = 1.0,
+        Default = aim.smooth
+    },
+    Rounding = 2,
+    Callback = function(val)
+        aim.smooth = val
+    end
+})
 end
 
-Window:Category({
-    Name = "杀手区",
-    Collapsible = true,
-    Opened = true, 
+local Feng = FengYu:Section({
+    Name = "有蚊子！",
+    SubName = "免疫一些偷袭你的蚊子",
+    Logo = "127607227470291",
+    open = true,
 })
+
+do
+    local abs = {
+        on = false,
+        range = 40,
+        duration = 1.5,
+        locked = false,
+        soundConn = nil,
+        scanThread = nil,
+        rings = {}
+    }
+    local absTriggerSounds = { ["86710781315432"] = true, ["99820161736138"] = true }
+
+    local function absAddRing(model)
+        pcall(function()
+            local hrp = model:FindFirstChild("HumanoidRootPart")
+            if not hrp or abs.rings[model] then return end
+            local ring = Instance.new("Part")
+            ring.Name = "AbsRing"
+            ring.Shape = Enum.PartType.Cylinder
+            ring.Size = Vector3.new(0.1, abs.range * 2, abs.range * 2)
+            ring.Color = Color3.fromRGB(220, 50, 50)
+            ring.Material = Enum.Material.ForceField
+            ring.Transparency = 0.5
+            ring.CanCollide = false
+            ring.CanTouch = false
+            ring.CFrame = hrp.CFrame * CFrame.Angles(0, 0, math.rad(90))
+            ring.Parent = hrp
+            local w = Instance.new("WeldConstraint")
+            w.Part0 = hrp
+            w.Part1 = ring
+            w.Parent = ring
+            abs.rings[model] = ring
+        end)
+    end
+
+    local function absRemoveRing(model)
+        pcall(function()
+            local r = abs.rings[model]
+            if r then r:Destroy() end
+            abs.rings[model] = nil
+        end)
+    end
+
+    local function absResizeRings()
+        pcall(function()
+            for _, r in pairs(abs.rings) do
+                if r and r.Parent then
+                    r.Size = Vector3.new(0.1, abs.range * 2, abs.range * 2)
+                end
+            end
+        end)
+    end
+
+    local function absCleanRings()
+        pcall(function()
+            for m in pairs(abs.rings) do absRemoveRing(m) end
+        end)
+    end
+
+    local function absFindTwoTime()
+        local players = workspace:FindFirstChild("Players")
+        if not players then return nil end
+        for _, folder in ipairs(players:GetChildren()) do
+            local tt = folder:FindFirstChild("TwoTime")
+            if tt then return tt end
+        end
+        return nil
+    end
+
+    local function absTrigger()
+        pcall(function()
+            if abs.locked then return end
+            local lp = game.Players.LocalPlayer
+            local ch = lp.Character
+            local myRoot = ch and ch:FindFirstChild("HumanoidRootPart")
+            if not myRoot then return end
+            local ttModel = absFindTwoTime()
+            if not ttModel then return end
+            local ttRoot = ttModel:FindFirstChild("HumanoidRootPart")
+            if not ttRoot then return end
+            if (myRoot.Position - ttRoot.Position).Magnitude > abs.range then return end
+            abs.locked = true
+            task.spawn(function()
+                local deadline = tick() + abs.duration
+                while tick() < deadline do
+                    if not abs.on then break end
+                    local ch2 = lp.Character
+                    local r2 = ch2 and ch2:FindFirstChild("HumanoidRootPart")
+                    if not r2 or not ttRoot.Parent then break end
+                    r2.CFrame = CFrame.lookAt(r2.Position, Vector3.new(ttRoot.Position.X, r2.Position.Y, ttRoot.Position.Z))
+                    game:GetService("RunService").RenderStepped:Wait()
+                end
+                abs.locked = false
+            end)
+        end)
+    end
+
+    local function absHookSounds()
+        pcall(function()
+            if abs.soundConn then abs.soundConn:Disconnect(); abs.soundConn = nil end
+            local function checkSound(obj)
+                if not abs.on or not obj:IsA("Sound") then return end
+                local id = obj.SoundId:match("%d+")
+                if id and absTriggerSounds[id] then absTrigger() end
+            end
+            abs.soundConn = workspace.DescendantAdded:Connect(function(obj)
+                if obj:IsA("Sound") then
+                    checkSound(obj)
+                    obj:GetPropertyChangedSignal("SoundId"):Connect(function() checkSound(obj) end)
+                end
+            end)
+        end)
+    end
+
+    local function absStartScan()
+        if abs.scanThread then return end
+        abs.scanThread = task.spawn(function()
+            while abs.on do
+                pcall(function()
+                    local players = workspace:FindFirstChild("Players")
+                    if players then
+                        for _, folder in ipairs(players:GetChildren()) do
+                            for _, model in ipairs(folder:GetChildren()) do
+                                if model.Name == "TwoTime" then absAddRing(model) end
+                            end
+                        end
+                    end
+                    for m in pairs(abs.rings) do
+                        if not m.Parent then absRemoveRing(m) end
+                    end
+                end)
+                task.wait(1)
+            end
+            abs.scanThread = nil
+        end)
+    end
+
+    local function absStart()
+        pcall(function()
+            absHookSounds()
+            absStartScan()
+        end)
+    end
+
+    local function absStop()
+        pcall(function()
+            abs.on = false
+            if abs.soundConn then
+                abs.soundConn:Disconnect()
+                abs.soundConn = nil
+            end
+            if abs.scanThread then
+                task.cancel(abs.scanThread)
+                abs.scanThread = nil
+            end
+            absCleanRings()
+            abs.locked = false
+        end)
+    end
+
+    local lp = game.Players.LocalPlayer
+    lp.CharacterAdded:Connect(function()
+        pcall(function()
+            abs.locked = false
+            if abs.on then absStart() end
+        end)
+    end)
+
+    task.spawn(function()
+        while true do
+            task.wait(10)
+            pcall(function()
+                local deadRings = {}
+                for model, ring in pairs(abs.rings) do
+                    if not model or not model.Parent or not ring or not ring.Parent then
+                        table.insert(deadRings, model)
+                    end
+                end
+                for _, model in ipairs(deadRings) do
+                    abs.rings[model] = nil
+                end
+            end)
+        end
+    end)
+
+Feng:Toggle({
+    Name = "启用防背刺",
+    Value = abs.on,
+    Callback = function(state)
+        pcall(function()
+            abs.on = state
+            if state then absStart() else
+                absStop() 
+            end
+        end)
+    end
+})
+
+Feng:Slider({
+    Name = "检测范围",
+    Value = { 
+        Min = 10, 
+        Max = 120, 
+        Default = abs.range 
+    },
+    Callback = function(value)
+        pcall(function()
+            abs.range = value
+            absResizeRings()
+        end)
+    end
+    })
+
+Feng:Slider({
+    Name = "注视时间",
+    Value = { 
+        Min = 0.3, 
+        Max = 5.0, 
+        Default = abs.duration 
+    },
+    Callback = function(value)
+        pcall(function() 
+            abs.duration = value 
+        end)
+    end
+})
+end
 
 local FengYu = Window:Tab("综合功能", "84830962019412")
 
 local Feng = FengYu:Section({
-    Name = "杀手综合功能",
+    Name = "杀死全部人",
     SubName = "就像疯子一样",
     Logo = "84830962019412",
     open = true,
 })
 
 do
-    local killAllActive = false
-    local currentTarget = nil
-    local killAllConnection = nil
-    local teleportMode = "circle"
-    local teleportAngle = 0
-    local teleportRadius = 3
-    local lastTargetRefresh = 0
-    local TARGET_REFRESH_INTERVAL = 0.5
-    local lastTeleportTime = 0
-    local TELEPORT_COOLDOWN = 0.15
-    local lastAttackTime = 0
-    local ATTACK_COOLDOWN = 0.25
+    local u2 = {
+        killAllActive = false,
+        killAllFly = false,
+        killAllTeleport = false,
+        flying = false,
+    }
+    local u4 = {
+        flySpeed = 50,
+    }
+    local u5 = {
+        currentTarget = nil,
+    }
+    local u6 = {
+        killAllConnection = nil,
+        flightConn = nil,
+        bodyGyro = nil,
+        bodyVel = nil,
+    }
 
-    local cachedSurvivorsFolder = nil
-    local cachedKillerRoot = nil
+    local function u69()
+        game:GetService("ContextActionService"):UnbindAction('SNT_Flight_Up')
+        game:GetService("ContextActionService"):UnbindAction('SNT_Flight_Down')
+        u2.flying = false
+    end
 
-    local function findNearestSurvivor()
-        local survivorsFolder = workspace:FindFirstChild("Players")
-        if survivorsFolder then
-            cachedSurvivorsFolder = survivorsFolder:FindFirstChild("Survivors")
+    local function u83()
+        if u2.flying then return end
+        u2.flying = true
+
+        local _LocalPlayer = game.Players.LocalPlayer
+        local v71 = _LocalPlayer.Character or _LocalPlayer.CharacterAdded:Wait()
+        local _HumanoidRootPart = v71:WaitForChild('HumanoidRootPart')
+        local _Humanoid = v71:FindFirstChildOfClass('Humanoid')
+
+        if _Humanoid then
+            _Humanoid.AutoRotate = false
+            u6.bodyGyro = Instance.new('BodyGyro')
+            u6.bodyGyro.P = 90000
+            u6.bodyGyro.MaxTorque = Vector3.new(9000000000, 9000000000, 9000000000)
+            u6.bodyGyro.CFrame = _HumanoidRootPart.CFrame
+            u6.bodyGyro.Parent = _HumanoidRootPart
+
+            u6.bodyVel = Instance.new('BodyVelocity')
+            u6.bodyVel.MaxForce = Vector3.new(9000000000, 9000000000, 9000000000)
+            u6.bodyVel.Velocity = Vector3.zero
+            u6.bodyVel.Parent = _HumanoidRootPart
+
+            u6.flightConn = game:GetService("RunService").Heartbeat:Connect(function()
+                local _CurrentCamera = workspace.CurrentCamera
+                local _LookVector = _CurrentCamera.CFrame.LookVector
+                local _RightVector = _CurrentCamera.CFrame.RightVector
+                local _MoveDirection = _Humanoid.MoveDirection
+                local v78 = _MoveDirection:Dot(Vector3.new(_LookVector.X, 0, _LookVector.Z).Unit)
+                local v79 = _MoveDirection:Dot(Vector3.new(_RightVector.X, 0, _RightVector.Z).Unit)
+                local v80 = _MoveDirection.Magnitude <= 0 and 0 or _LookVector.Y * v78
+                local v81 = _LookVector * v78 + _RightVector * v79
+                local v82 = Vector3.new(v81.X, v80, v81.Z)
+                if v82.Magnitude > 1 then v82 = v82.Unit end
+                u6.bodyVel.Velocity = v82 * u4.flySpeed
+                u6.bodyGyro.CFrame = CFrame.lookAt(_HumanoidRootPart.Position, _HumanoidRootPart.Position + _LookVector, _CurrentCamera.CFrame.UpVector)
+            end)
         end
-        if not cachedSurvivorsFolder then return nil end
+    end
 
-        local nearest = nil
-        local minDistance = math.huge
-        local localPlayer = game.Players.LocalPlayer
-        local localChar = localPlayer.Character
-        if not localChar then return nil end
-
-        if not cachedKillerRoot or not cachedKillerRoot.Parent then
-            cachedKillerRoot = localChar:FindFirstChild("HumanoidRootPart")
-            if not cachedKillerRoot then return nil end
+    local function u85()
+        if u2.flying then
+            u2.flying = false
+            u69()
+            if u6.flightConn then u6.flightConn:Disconnect(); u6.flightConn = nil end
+            if u6.bodyGyro then u6.bodyGyro:Destroy(); u6.bodyGyro = nil end
+            if u6.bodyVel then u6.bodyVel:Destroy(); u6.bodyVel = nil end
+            local _Character = game.Players.LocalPlayer.Character
+            if _Character then
+                local hum = _Character:FindFirstChildOfClass('Humanoid')
+                if hum then hum.AutoRotate = true end
+            end
         end
+    end
 
-        local survivors = cachedSurvivorsFolder:GetChildren()
-        for i = 1, #survivors do
-            local survivor = survivors[i]
-            if survivor:IsA("Model") then
-                local humanoid = survivor:FindFirstChild("Humanoid")
-                local rootPart = survivor:FindFirstChild("HumanoidRootPart")
-                if humanoid and humanoid.Health > 0 and rootPart then
-                    local delta = rootPart.Position - cachedKillerRoot.Position
-                    local distanceSquared = delta.X * delta.X + delta.Y * delta.Y + delta.Z * delta.Z
-                    if distanceSquared < minDistance then
-                        minDistance = distanceSquared
-                        nearest = survivor
+    local function getNearestSurvivor()
+        local _Character9 = game.Players.LocalPlayer.Character
+        if not _Character9 then return nil end
+        local _HumanoidRootPart9 = _Character9:FindFirstChild('HumanoidRootPart')
+        if not _HumanoidRootPart9 then return nil end
+        local _Survivors5 = workspace.Players:FindFirstChild('Survivors')
+        if not _Survivors5 then return nil end
+
+        local bestDist = math.huge
+        local bestTarget = nil
+        for _, v562 in ipairs(_Survivors5:GetChildren()) do
+            if v562:IsA('Model') and v562:FindFirstChild('Humanoid') and v562.Humanoid.Health > 0 then
+                local _HumanoidRootPart10 = v562:FindFirstChild('HumanoidRootPart')
+                if _HumanoidRootPart10 then
+                    local dist = (_HumanoidRootPart10.Position - _HumanoidRootPart9.Position).Magnitude
+                    if dist < bestDist then
+                        bestTarget = v562
+                        bestDist = dist
                     end
                 end
             end
         end
-        return nearest, math.sqrt(minDistance)
+        return bestTarget
     end
 
-    local function teleportToTarget(target)
-        if not target or not target:FindFirstChild("HumanoidRootPart") then
-            return false
+    local function moveToTarget(p566)
+        if p566 and p566:FindFirstChild('HumanoidRootPart') then
+            local _Character10 = game.Players.LocalPlayer.Character
+            if _Character10 then
+                local _HumanoidRootPart11 = _Character10:FindFirstChild('HumanoidRootPart')
+                if _HumanoidRootPart11 then
+                    local _HumanoidRootPart12 = p566.HumanoidRootPart
+                    if u2.killAllTeleport then
+                        local _LookVector2 = _HumanoidRootPart12.CFrame.LookVector
+                        local v571 = _HumanoidRootPart12.Position - _LookVector2 * 2.7 + Vector3.new(0, 1.5, 0)
+                        _HumanoidRootPart11.CFrame = CFrame.new(v571)
+                        _HumanoidRootPart11.CFrame = CFrame.lookAt(v571, _HumanoidRootPart12.Position)
+                    elseif u2.killAllFly then
+                        if not u2.flying then u83() end
+                        local _Unit = (_HumanoidRootPart12.Position - _HumanoidRootPart11.Position).Unit
+                        _Character10.Humanoid:MoveTo(_HumanoidRootPart11.Position + _Unit * 10)
+                    else
+                        _Character10.Humanoid:MoveTo(_HumanoidRootPart12.Position)
+                    end
+                end
+            end
         end
-
-        local localPlayer = game.Players.LocalPlayer
-        local localChar = localPlayer.Character
-        if not localChar then return false end
-
-        if not cachedKillerRoot or not cachedKillerRoot.Parent then
-            cachedKillerRoot = localChar:FindFirstChild("HumanoidRootPart")
-            if not cachedKillerRoot then return false end
-        end
-
-        local targetRoot = target.HumanoidRootPart
-        local targetPos = targetRoot.Position
-        local targetLook = targetRoot.CFrame.LookVector
-        local teleportPos
-
-        if teleportMode == "circle" then
-            teleportAngle = teleportAngle + 0.2
-            local x = math.cos(teleportAngle) * teleportRadius
-            local z = math.sin(teleportAngle) * teleportRadius
-            teleportPos = targetPos + Vector3.new(x, 2, z)
-        else
-            teleportPos = targetPos + (targetLook * 2) + Vector3.new(0, 1.5, 0)
-        end
-
-        if not teleportPos then
-            teleportPos = targetPos
-        end
-
-        cachedKillerRoot.CFrame = CFrame.new(teleportPos)
-
-        if teleportMode == "front" then
-            cachedKillerRoot.CFrame = CFrame.lookAt(teleportPos, targetPos)
-        end
-        return true
-    end
-
-    local function getAttackSkill()
-        local localChar = game.Players.LocalPlayer.Character
-        if not localChar then return "Slash" end
-        local charName = localChar.Name
-        if charName == "Noli" then
-            return "Stab"
-        elseif charName == "c001kidd" then
-            return "Punch"
-        else
-            return "Slash"
-        end
-    end
-
-    local function useAttackSkill()
-        local currentTime = tick()
-        if currentTime - lastAttackTime < ATTACK_COOLDOWN then
-            return
-        end
-        local skillName = getAttackSkill()
-        lastAttackTime = currentTime
-        pcall(function()
-            game.ReplicatedStorage.Modules.Network.RemoteEvent:FireServer("UseActorAbility", skillName)
-        end)
     end
 
     local function startKillAll()
-        if killAllActive then return end
-        killAllActive = true
-        currentTarget = nil
-        lastTargetRefresh = 0
-        cachedSurvivorsFolder = nil
-        cachedKillerRoot = nil
-
-        killAllConnection = task.spawn(function()
-            local lastFrameTime = tick()
-            while killAllActive do
-                local currentTime = tick()
-                local deltaTime = currentTime - lastFrameTime
-                lastFrameTime = currentTime
-
-                if currentTime - lastTargetRefresh >= TARGET_REFRESH_INTERVAL then
-                    if currentTarget and (not currentTarget.Parent or
-                       not currentTarget:FindFirstChild("Humanoid") or
-                       currentTarget.Humanoid.Health <= 0) then
-                        currentTarget = nil
+        if not u2.killAllActive then
+            u2.killAllActive = true
+            u6.killAllConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if u2.killAllActive then
+                    if u5.currentTarget and (not u5.currentTarget.Parent or not u5.currentTarget:FindFirstChild('Humanoid') or u5.currentTarget.Humanoid.Health <= 0) then
+                        u5.currentTarget = nil
                     end
-                    if not currentTarget then
-                        currentTarget = findNearestSurvivor()
+                    if not u5.currentTarget then
+                        u5.currentTarget = getNearestSurvivor()
+                        if not u5.currentTarget then return end
                     end
-                    lastTargetRefresh = currentTime
+                    moveToTarget(u5.currentTarget)
                 end
+            end)
+        end
+    end
 
-                if not currentTarget then
-                    task.wait(0.1)
-                else
-                    if currentTime - lastTeleportTime >= TELEPORT_COOLDOWN then
-                        local teleportSuccess = teleportToTarget(currentTarget)
-                        if teleportSuccess then
-                            lastTeleportTime = currentTime
-                        end
-                    end
+    local function stopKillAll()
+        if u2.killAllActive then
+            u2.killAllActive = false
+            if u6.killAllConnection then
+                pcall(function() u6.killAllConnection:Disconnect() end)
+                u6.killAllConnection = nil
+            end
+            u5.currentTarget = nil
+            local _Character17 = game.Players.LocalPlayer.Character
+            if _Character17 and _Character17:FindFirstChildOfClass('Humanoid') then
+                pcall(function() _Character17.Humanoid:MoveTo(_Character17.HumanoidRootPart.Position) end)
+            end
+            if u2.flying then u85() end
+        end
+    end
 
-                    useAttackSkill()
+Feng:Toggle({
+    Name = "击杀模式",
+    Value = false,
+    Callback = function(val)
+        if val then startKillAll() else
+            stopKillAll() 
+        end
+    end
+})
 
-                    local waitTime = (teleportMode == "circle") and 0.05 or 0.1
-                    if deltaTime < waitTime then
-                        task.wait(waitTime - deltaTime)
+Feng:Toggle({
+    Name = "传送模式",
+    Value = false,
+    Callback = function(val)
+        u2.killAllTeleport = val
+             if val then u2.killAllFly = false 
+        end
+    end
+})
+
+Feng:Button({
+    Name = "切换目标",
+    Callback = function()
+        u5.currentTarget = getNearestSurvivor()
+    end
+})
+
+    game.Players.LocalPlayer.CharacterAdded:Connect(function()
+        if u2.killAllActive then stopKillAll() end
+    end)
+
+    game.Players.LocalPlayer.CharacterRemoving:Connect(function()
+        if u2.flying then u85() end
+    end)
+end
+
+local Feng = FengYu:Section({
+    Name = "吸力",
+    SubName = "变成磁铁吸在幸存者上",
+    Logo = "98092096704459",
+    open = true,
+})
+
+do
+    local LP = game.Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+
+    local suction = {
+        enabled = false,
+        strength = 50,
+        maxDist = 100,
+        cache = {},
+        cacheTime = 0,
+        cacheLife = 0.3,
+        conn = nil,
+    }
+
+    local function isKiller()
+        local char = LP.Character
+        if not char then return false end
+        local killers = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Killers")
+        return killers and char:IsDescendantOf(killers)
+    end
+
+    local function getNearestSurvivor()
+        local now = tick()
+        if now - suction.cacheTime < suction.cacheLife and suction.cache.target and suction.cache.target.Parent then
+            return suction.cache.target
+        end
+        suction.cacheTime = now
+        suction.cache = {}
+
+        local survivors = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Survivors")
+        if not survivors then return nil end
+
+        local char = LP.Character
+        if not char then return nil end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return nil end
+
+        local best, bestDist = nil, math.huge
+        for _, model in ipairs(survivors:GetChildren()) do
+            if model ~= char and model:IsA("Model") then
+                local hum = model:FindFirstChildOfClass("Humanoid")
+                local root = model:FindFirstChild("HumanoidRootPart")
+                if hum and root and hum.Health > 0 then
+                    local d = (root.Position - hrp.Position).Magnitude
+                    if d < bestDist and d <= suction.maxDist then
+                        bestDist = d
+                        best = root
                     end
                 end
+            end
+        end
+        suction.cache.target = best
+        return best
+    end
+
+    local function pushToTarget(targetRoot)
+        if not targetRoot or not targetRoot.Parent then return end
+
+        local killerChar = LP.Character
+        if not killerChar then return end
+        local killerHRP = killerChar:FindFirstChild("HumanoidRootPart")
+        if not killerHRP then return end
+
+        local direction = (targetRoot.Position - killerHRP.Position)
+        if direction.Magnitude < 0.1 then return end
+        direction = direction.Unit
+
+        local currentVel = killerHRP.AssemblyLinearVelocity
+        local pushForce = direction * suction.strength
+        local newVel = currentVel:Lerp(currentVel + pushForce, 0.3)
+        killerHRP.AssemblyLinearVelocity = newVel
+    end
+
+    local function startSuction()
+        if suction.conn then return end
+        suction.conn = RunService.RenderStepped:Connect(function()
+            if not suction.enabled then return end
+            if not isKiller() then return end
+            local target = getNearestSurvivor()
+            if target then
+                pushToTarget(target)
             end
         end)
     end
 
-    local function stopKillAll()
-        killAllActive = false
-        if killAllConnection then
-            task.cancel(killAllConnection)
-            killAllConnection = nil
+    local function stopSuction()
+        if suction.conn then
+            suction.conn:Disconnect()
+            suction.conn = nil
         end
-        currentTarget = nil
-        teleportAngle = 0
-        cachedSurvivorsFolder = nil
-        cachedKillerRoot = nil
+        suction.cache = {}
     end
-
-    game.Players.LocalPlayer.CharacterAdded:Connect(function()
-        if killAllActive then
-            stopKillAll()
-        end
-    end)
 
 Feng:Toggle({
-    Name = "杀死所有",
+    Name = "冲向幸存者",
     Value = false,
     Callback = function(state)
-        if state then
-            startKillAll()
-        else
-            stopKillAll()
+        suction.enabled = state
+        if state then startSuction() 
+        else stopSuction() 
         end
     end
 })
 
-Feng:Dropdown({
-    Name = "选择模式",
-    Values = { "转圈", "前方" },
-    Value = "转圈",
-    Callback = function(option)
-        if option == "转圈" then
-            teleportMode = "circle"
-        elseif option == "前方" then
-            teleportMode = "front"
-        end
+Feng:Slider({
+    Name = "吸力强度",
+    Value = { 
+        Min = 5, 
+        Max = 100, 
+        Default = 50 
+    },
+    Callback = function(v) 
+        suction.strength = v 
     end
 })
+
+Feng:Slider({
+    Name = "最大搜索距离",
+    Value = { 
+        Min = 20, 
+        Max = 200, 
+        Default = 100 
+    },
+    Callback = function(v) 
+        suction.maxDist = v 
+    end
+})
+
+    LP.CharacterAdded:Connect(function()
+        if suction.enabled then
+            stopSuction()
+            startSuction()
+        end
+    end)
 end
 
 local Feng = FengYu:Section({
     Name = "斩首者格挡",
     SubName = "设置",
-    Logo = "84830962019412",
+    Logo = "101155610322224",
     open = true,
 })
 
@@ -3746,7 +4577,7 @@ Feng:Toggle({
     Name = "狂暴速度",
     Value = SlasherSettings.EnragedEnabled,
     Callback = function(val)
-        SlasherSettings.EnragedEnabled = val
+        SlasherSettings.EnragedMultiplier = val
     end
 })
 
@@ -3795,7 +4626,7 @@ end
 local Feng = FengYu:Section({
     Name = "约翰.多格挡",
     SubName = "设置",
-    Logo = "84830962019412",
+    Logo = "94161186262005",
     open = true,
 })
 
@@ -4027,864 +4858,6 @@ Feng:Toggle({
 })
 end
 
-local FengYu = Window:Tab("碰撞修改区", "84082094395188")
-
-local Feng = FengYu:Section({
-    Name = "碰撞箱扩展",
-    SubName = "手臂设置",
-    Logo = "84830962019412",
-    open = true,
-})
-
-do
-    local Players = game:GetService("Players")
-    local LP = Players.LocalPlayer
-    local RunService = game:GetService("RunService")
-    local Workspace = game:GetService("Workspace")
-
-    local hitboxExtender = {
-        enabled = false,
-        range = 10,
-    }
-
-    local function studsToPower(studs)
-        return studs * 6
-    end
-
-    task.spawn(function()
-        while true do
-            RunService.Heartbeat:Wait()
-
-            if hitboxExtender.enabled then
-                local char = LP.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                if not hrp then continue end
-
-                local myHitboxDetected = false
-                local hitboxesFolder = Workspace:FindFirstChild("Hitboxes")
-                local myUsername = char:GetAttribute("Username") or LP.Name
-                local myHitboxName = myUsername .. "Hitbox"
-
-                if hitboxesFolder and char then
-                    for _, part in ipairs(hitboxesFolder:GetChildren()) do
-                        if part.Name == myHitboxName then
-                            if hrp and (part.Position - hrp.Position).Magnitude <= 15 then
-                                myHitboxDetected = true
-                            end
-                            break
-                        end
-                    end
-                end
-
-                if myHitboxDetected and char and hrp and hrp.Parent then
-                    local velocity = hrp.AssemblyLinearVelocity
-                    if velocity.Magnitude > 0.5 then
-                        local distance = studsToPower(hitboxExtender.range)
-                        local moveDir = velocity.Magnitude > 0 and velocity.Unit or hrp.CFrame.LookVector
-                        local newVelocity = velocity + (moveDir * distance)
-                        hrp.AssemblyLinearVelocity = Vector3.new(newVelocity.X, velocity.Y, newVelocity.Z)
-
-                        RunService.RenderStepped:Wait()
-                        if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-                            LP.Character.HumanoidRootPart.AssemblyLinearVelocity = velocity
-                        end
-                    end
-                end
-            end
-        end
-    end)
-
-Feng:Toggle({
-    Name = "启用碰撞箱扩展",
-    Value = false,
-    Callback = function(v)
-        hitboxExtender.enabled = v
-    end
-})
-
-Feng:Slider({
-    Name = "碰撞箱长度",
-    Value = {
-        Min = 0,
-        Max = 50,
-        Default = 10
-    },
-    Callback = function(v)
-        hitboxExtender.range = math.floor(v)
-    end
-})
-end
-
-local FengYu = Window:Tab("拐弯区", "104851651453042")
-
-local Feng = FengYu:Section({
-    Name = "汽车拐弯",
-    SubName = "打开[准心]才有效果",
-    Logo = "84830962019412",
-    open = true,
-})
-
-do
-    local RunService = game:GetService("RunService")
-    local UserInputService = game:GetService("UserInputService")
-    local Players = game:GetService("Players")
-    local LP = Players.LocalPlayer
-    local Camera = workspace.CurrentCamera
-
-    local dashTurn = {
-        sixer = false,
-        coolkid = false,
-        noli = false,
-        noliActive = false,
-        noliOrigWalkSpeed = nil,
-        noliConn = nil,
-    }
-
-    local function getCameraInputDir()
-        local cam = Camera
-        local cf = cam.CFrame
-        local camFwd = Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z)
-        local camRight = Vector3.new(cf.RightVector.X, 0, cf.RightVector.Z)
-        local x, z = 0, 0
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then z = z - 1 end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down) then z = z + 1 end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then x = x - 1 end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then x = x + 1 end
-        local dir = camFwd * -z + camRight * x
-        if dir.Magnitude > 0.01 then return dir.Unit end
-        if camFwd.Magnitude > 0.01 then return camFwd.Unit end
-        return Vector3.new(0, 0, -1)
-    end
-
-    local function sixerAirStrafeStep()
-        if not dashTurn.sixer then return end
-        local char = LP.Character
-        if not char then return end
-        if char:GetAttribute("PursuitState") ~= "Dashing" then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if not hrp or not hum then return end
-        if hum.FloorMaterial ~= Enum.Material.Air then return end
-        local cam = Camera
-        local flat = cam.CFrame.LookVector * Vector3.new(1, 0, 1)
-        if flat.Magnitude < 0.01 then return end
-        flat = flat.Unit
-        local vel = hrp.AssemblyLinearVelocity
-        local hVel = Vector3.new(vel.X, 0, vel.Z)
-        local hSpeed = hVel.Magnitude
-        if hSpeed < 0.1 then return end
-        local newH = hVel:Lerp(flat * hSpeed, 1)
-        hrp.AssemblyLinearVelocity = Vector3.new(newH.X, vel.Y, newH.Z)
-    end
-
-    local function coolkidDashTurnStep(dt)
-        if not dashTurn.coolkid then return end
-        local char = LP.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not char or not hrp then return end
-        if char:GetAttribute("FootstepsMuted") ~= true then return end
-        local dir = getCameraInputDir()
-        local lv = hrp:FindFirstChildWhichIsA("LinearVelocity")
-        if lv then lv.LineDirection = dir end
-        if dir.Magnitude > 0.01 then
-            local targetRot = CFrame.new(hrp.Position, hrp.Position + dir).Rotation
-            hrp.CFrame = CFrame.new(hrp.Position) * hrp.CFrame.Rotation:Lerp(targetRot, math.min(dt * 16, 1))
-        end
-    end
-
-    local function noliStartOverride()
-        if dashTurn.noliActive then return end
-        dashTurn.noliActive = true
-        dashTurn.noliConn = RunService.RenderStepped:Connect(function()
-            if not dashTurn.noli then
-                noliStopOverride()
-                return
-            end
-            local char = LP.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            if not hum or not root then return end
-            if not dashTurn.noliOrigWalkSpeed then dashTurn.noliOrigWalkSpeed = hum.WalkSpeed end
-            hum.WalkSpeed = 60
-            hum.AutoRotate = false
-            local horiz = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
-            if horiz.Magnitude > 0 then hum:Move(horiz.Unit) end
-        end)
-    end
-
-    local function noliStopOverride()
-        if not dashTurn.noliActive then return end
-        dashTurn.noliActive = false
-        if dashTurn.noliConn then
-            dashTurn.noliConn:Disconnect()
-            dashTurn.noliConn = nil
-        end
-        local char = LP.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.WalkSpeed = dashTurn.noliOrigWalkSpeed or 16
-            hum.AutoRotate = true
-            pcall(function() hum:Move(Vector3.new(0, 0, 0)) end)
-        end
-        dashTurn.noliOrigWalkSpeed = nil
-    end
-
-    RunService:BindToRenderStep("SixerAirStrafe", Enum.RenderPriority.Character.Value + 2, sixerAirStrafeStep)
-
-    local coolkidConn = nil
-    local function updateCoolkidDash()
-        if coolkidConn then coolkidConn:Disconnect() end
-        coolkidConn = RunService.RenderStepped:Connect(function(dt)
-            coolkidDashTurnStep(dt)
-        end)
-    end
-    updateCoolkidDash()
-
-    LP.CharacterAdded:Connect(function()
-        noliStopOverride()
-    end)
-
-    RunService.RenderStepped:Connect(function()
-        if not dashTurn.noli then
-            if dashTurn.noliActive then noliStopOverride() end
-            return
-        end
-        local char = LP.Character
-        if not char then return end
-        if char:GetAttribute("VoidRushState") == "Dashing" then
-            noliStartOverride()
-        else
-            noliStopOverride()
-        end
-    end)
-
-Feng:Toggle({
-    Name = "访客666 - 空中控制",
-    Value = false,
-    Callback = function(state)
-        dashTurn.sixer = state
-    end
-})
-
-Feng:Toggle({
-    Name = "酷小孩 - 冲刺控制",
-    Value = false,
-    Callback = function(state)
-        dashTurn.coolkid = state
-    end
-})
-
-Feng:Toggle({
-    Name = "诺利 - 冲刺控制",
-    Value = false,
-    Callback = function(state)
-        dashTurn.noli = state
-        if not state then noliStopOverride() end
-    end
-})
-end
-
-local FengYu = Window:Tab("自瞄区", "79416567520364")
-
-local Feng = FengYu:Section({
-    Name = "自瞄",
-    SubName = "靠近幸存者自动瞄准",
-    Logo = "84830962019412",
-    open = true,
-})
-
-do
-    local Players = game:GetService("Players")
-    local RunService = game:GetService("RunService")
-    local Workspace = game:GetService("Workspace")
-    local LP = Players.LocalPlayer
-
-    local aim = {
-        on = false,
-        cooldown = 0.3,
-        lockTime = 0.4,
-        maxDist = 30,
-        smooth = 0.35,
-        targeting = false,
-        target = nil,
-        deathConn = nil,
-        autoRotate = nil,
-        lastFired = 0,
-        hum = nil,
-        hrp = nil,
-        cache = {},
-        cacheTime = 0,
-        cacheLife = 0.5,
-    }
-
-    local function aimIsKiller()
-        local char = LP.Character
-        if not char then return false end
-        local killersFolder = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Killers")
-        return killersFolder and char:IsDescendantOf(killersFolder)
-    end
-
-    local function aimRefreshChar(ch)
-        aim.hum = ch and ch:FindFirstChildOfClass("Humanoid")
-        aim.hrp = ch and ch:FindFirstChild("HumanoidRootPart")
-    end
-
-    local function aimRefreshTargets()
-        local now = tick()
-        if now - aim.cacheTime < aim.cacheLife then return end
-        aim.cacheTime = now
-        aim.cache = {}
-        local survivorsFolder = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Survivors")
-        if not survivorsFolder then return end
-        for _, model in ipairs(survivorsFolder:GetChildren()) do
-            if model ~= LP.Character and model:IsA("Model") then
-                local h = model:FindFirstChildOfClass("Humanoid")
-                local r = model:FindFirstChild("HumanoidRootPart")
-                if h and r and h.Health > 0 then
-                    table.insert(aim.cache, r)
-                end
-            end
-        end
-    end
-
-    local function aimNearest()
-        aimRefreshTargets()
-        if not aim.hrp or #aim.cache == 0 then return nil end
-        local best, bestDist = nil, math.huge
-        for _, r in ipairs(aim.cache) do
-            local d = (r.Position - aim.hrp.Position).Magnitude
-            if d < bestDist and d <= aim.maxDist then
-                bestDist = d
-                best = r
-            end
-        end
-        return best
-    end
-
-    local function aimUnlock()
-        if not aim.targeting then return end
-        if aim.deathConn then aim.deathConn:Disconnect(); aim.deathConn = nil end
-        if aim.autoRotate ~= nil and aim.hum then
-            aim.hum.AutoRotate = aim.autoRotate
-        end
-        aim.targeting = false
-        aim.target = nil
-    end
-
-    local function aimLock(rootPart)
-        if not rootPart or not rootPart.Parent or not aim.hum or not aim.hrp then return end
-        if aim.targeting and aim.target == rootPart then return end
-        aimUnlock()
-        aim.target = rootPart
-        aim.targeting = true
-        aim.autoRotate = aim.hum.AutoRotate
-        aim.hum.AutoRotate = false
-        local targetHumanoid = rootPart.Parent:FindFirstChildOfClass("Humanoid")
-        if targetHumanoid then
-            aim.deathConn = targetHumanoid.Died:Connect(aimUnlock)
-        end
-        task.delay(aim.lockTime, function()
-            if aim.target == rootPart then aimUnlock() end
-        end)
-    end
-
-    local function setupAimbotTrigger()
-        local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Modules")
-            and game.ReplicatedStorage.Modules:FindFirstChild("Network")
-            and game.ReplicatedStorage.Modules.Network:FindFirstChild("Network")
-            and game.ReplicatedStorage.Modules.Network.Network:FindFirstChild("RemoteEvent")
-        if not remote then return end
-
-        remote.OnClientEvent:Connect(function(...)
-            if not aim.on then return end
-            local args = {...}
-            if type(args[1]) ~= "string" then return end
-            local abilityName = args[1]
-            if abilityName:match("Ability") or abilityName:match("[QER]") or
-               abilityName == "Slash" or abilityName == "Dagger" or abilityName == "Charge" or
-               abilityName == "Stab" or abilityName == "Punch" then
-                if tick() - aim.lastFired < aim.cooldown then return end
-                aim.lastFired = tick()
-                if aimIsKiller() then
-                    local target = aimNearest()
-                    if target then aimLock(target) end
-                end
-            end
-        end)
-    end
-
-    LP.CharacterAdded:Connect(function(ch)
-        task.wait(0.5)
-        aimRefreshChar(ch)
-    end)
-    if LP.Character then
-        aimRefreshChar(LP.Character)
-    end
-
-    RunService.RenderStepped:Connect(function()
-        if not aim.on or not aim.targeting or not aim.hrp or not aim.target then return end
-        if not aim.target.Parent then aimUnlock(); return end
-        local targetHumanoid = aim.target.Parent:FindFirstChildOfClass("Humanoid")
-        if not targetHumanoid or targetHumanoid.Health <= 0 then aimUnlock(); return end
-        local flat = Vector3.new(
-            aim.target.Position.X - aim.hrp.Position.X,
-            0,
-            aim.target.Position.Z - aim.hrp.Position.Z
-        ).Unit
-        if flat.Magnitude > 0 then
-            aim.hrp.CFrame = aim.hrp.CFrame:Lerp(
-                CFrame.new(aim.hrp.Position, aim.hrp.Position + flat),
-                aim.smooth
-            )
-        end
-    end)
-
-    setupAimbotTrigger()
-
-Feng:Toggle({
-    Name = "使用自瞄",
-    Value = aim.on,
-    Callback = function(state)
-        aim.on = state
-        if not state then aimUnlock() end
-    end
-})
-
-Feng:Slider({
-    Name = "冷却时间 (秒)",
-    Value = {
-        Min = 0.1,
-        Max = 2.0,
-        Default = aim.cooldown
-    },
-    Rounding = 1,
-    Callback = function(val)
-        aim.cooldown = val
-    end
-})
-
-Feng:Slider({
-    Name = "锁定时间 (秒)",
-    Value = {
-        Min = 0.1,
-        Max = 3.0,
-        Default = aim.lockTime
-    },
-    Rounding = 1,
-    Callback = function(val)
-        aim.lockTime = val
-    end
-})
-
-Feng:Slider({
-    Name = "最大距离",
-    Value = {
-        Min = 5,
-        Max = 100,
-        Default = aim.maxDist
-    },
-    Callback = function(val)
-        aim.maxDist = val
-    end
-})
-
-Feng:Slider({
-    Name = "旋转平滑度",
-    Value = {
-        Min = 0.05,
-        Max = 1.0,
-        Default = aim.smooth
-    },
-    Rounding = 2,
-    Callback = function(val)
-        aim.smooth = val
-    end
-})
-end
-
-local FengYu = Window:Tab("吸力区", "98092096704459")
-
-local Feng = FengYu:Section({
-    Name = "吸力",
-    SubName = "变成磁铁吸在幸存者上",
-    Logo = "84830962019412",
-    open = true,
-})
-
-do
-    local LP = game.Players.LocalPlayer
-    local RunService = game:GetService("RunService")
-    local Workspace = game:GetService("Workspace")
-
-    local suction = {
-        enabled = false,
-        strength = 50,
-        maxDist = 100,
-        cache = {},
-        cacheTime = 0,
-        cacheLife = 0.3,
-        conn = nil,
-    }
-
-    local function isKiller()
-        local char = LP.Character
-        if not char then return false end
-        local killers = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Killers")
-        return killers and char:IsDescendantOf(killers)
-    end
-
-    local function getNearestSurvivor()
-        local now = tick()
-        if now - suction.cacheTime < suction.cacheLife and suction.cache.target and suction.cache.target.Parent then
-            return suction.cache.target
-        end
-        suction.cacheTime = now
-        suction.cache = {}
-
-        local survivors = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Survivors")
-        if not survivors then return nil end
-
-        local char = LP.Character
-        if not char then return nil end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return nil end
-
-        local best, bestDist = nil, math.huge
-        for _, model in ipairs(survivors:GetChildren()) do
-            if model ~= char and model:IsA("Model") then
-                local hum = model:FindFirstChildOfClass("Humanoid")
-                local root = model:FindFirstChild("HumanoidRootPart")
-                if hum and root and hum.Health > 0 then
-                    local d = (root.Position - hrp.Position).Magnitude
-                    if d < bestDist and d <= suction.maxDist then
-                        bestDist = d
-                        best = root
-                    end
-                end
-            end
-        end
-        suction.cache.target = best
-        return best
-    end
-
-    local function pushToTarget(targetRoot)
-        if not targetRoot or not targetRoot.Parent then return end
-
-        local killerChar = LP.Character
-        if not killerChar then return end
-        local killerHRP = killerChar:FindFirstChild("HumanoidRootPart")
-        if not killerHRP then return end
-
-        local direction = (targetRoot.Position - killerHRP.Position)
-        if direction.Magnitude < 0.1 then return end
-        direction = direction.Unit
-
-        local currentVel = killerHRP.AssemblyLinearVelocity
-        local pushForce = direction * suction.strength
-        local newVel = currentVel:Lerp(currentVel + pushForce, 0.3)
-        killerHRP.AssemblyLinearVelocity = newVel
-    end
-
-    local function startSuction()
-        if suction.conn then return end
-        suction.conn = RunService.RenderStepped:Connect(function()
-            if not suction.enabled then return end
-            if not isKiller() then return end
-            local target = getNearestSurvivor()
-            if target then
-                pushToTarget(target)
-            end
-        end)
-    end
-
-    local function stopSuction()
-        if suction.conn then
-            suction.conn:Disconnect()
-            suction.conn = nil
-        end
-        suction.cache = {}
-    end
-
-Feng:Toggle({
-    Name = "冲向幸存者",
-    Value = false,
-    Callback = function(state)
-        suction.enabled = state
-        if state then startSuction() 
-        else stopSuction() 
-        end
-    end
-})
-
-Feng:Slider({
-    Name = "吸力强度",
-    Value = { 
-        Min = 5, 
-        Max = 100, 
-        Default = 50 
-    },
-    Callback = function(v) 
-        suction.strength = v 
-    end
-})
-
-Feng:Slider({
-    Name = "最大搜索距离",
-    Value = { 
-        Min = 20, 
-        Max = 200, 
-        Default = 100 
-    },
-    Callback = function(v) 
-        suction.maxDist = v 
-    end
-})
-
-    LP.CharacterAdded:Connect(function()
-        if suction.enabled then
-            stopSuction()
-            startSuction()
-        end
-    end)
-end
-
-local FengYu = Window:Tab("反背刺区", "127607227470291")
-
-local Feng = FengYu:Section({
-    Name = "有蚊子！",
-    SubName = "免疫一些偷袭你的蚊子",
-    Logo = "84830962019412",
-    open = true,
-})
-
-do
-    local abs = {
-        on = false,
-        range = 40,
-        duration = 1.5,
-        locked = false,
-        soundConn = nil,
-        scanThread = nil,
-        rings = {}
-    }
-    local absTriggerSounds = { ["86710781315432"] = true, ["99820161736138"] = true }
-
-    local function absAddRing(model)
-        pcall(function()
-            local hrp = model:FindFirstChild("HumanoidRootPart")
-            if not hrp or abs.rings[model] then return end
-            local ring = Instance.new("Part")
-            ring.Name = "AbsRing"
-            ring.Shape = Enum.PartType.Cylinder
-            ring.Size = Vector3.new(0.1, abs.range * 2, abs.range * 2)
-            ring.Color = Color3.fromRGB(220, 50, 50)
-            ring.Material = Enum.Material.ForceField
-            ring.Transparency = 0.5
-            ring.CanCollide = false
-            ring.CanTouch = false
-            ring.CFrame = hrp.CFrame * CFrame.Angles(0, 0, math.rad(90))
-            ring.Parent = hrp
-            local w = Instance.new("WeldConstraint")
-            w.Part0 = hrp
-            w.Part1 = ring
-            w.Parent = ring
-            abs.rings[model] = ring
-        end)
-    end
-
-    local function absRemoveRing(model)
-        pcall(function()
-            local r = abs.rings[model]
-            if r then r:Destroy() end
-            abs.rings[model] = nil
-        end)
-    end
-
-    local function absResizeRings()
-        pcall(function()
-            for _, r in pairs(abs.rings) do
-                if r and r.Parent then
-                    r.Size = Vector3.new(0.1, abs.range * 2, abs.range * 2)
-                end
-            end
-        end)
-    end
-
-    local function absCleanRings()
-        pcall(function()
-            for m in pairs(abs.rings) do absRemoveRing(m) end
-        end)
-    end
-
-    local function absFindTwoTime()
-        local players = workspace:FindFirstChild("Players")
-        if not players then return nil end
-        for _, folder in ipairs(players:GetChildren()) do
-            local tt = folder:FindFirstChild("TwoTime")
-            if tt then return tt end
-        end
-        return nil
-    end
-
-    local function absTrigger()
-        pcall(function()
-            if abs.locked then return end
-            local lp = game.Players.LocalPlayer
-            local ch = lp.Character
-            local myRoot = ch and ch:FindFirstChild("HumanoidRootPart")
-            if not myRoot then return end
-            local ttModel = absFindTwoTime()
-            if not ttModel then return end
-            local ttRoot = ttModel:FindFirstChild("HumanoidRootPart")
-            if not ttRoot then return end
-            if (myRoot.Position - ttRoot.Position).Magnitude > abs.range then return end
-            abs.locked = true
-            task.spawn(function()
-                local deadline = tick() + abs.duration
-                while tick() < deadline do
-                    if not abs.on then break end
-                    local ch2 = lp.Character
-                    local r2 = ch2 and ch2:FindFirstChild("HumanoidRootPart")
-                    if not r2 or not ttRoot.Parent then break end
-                    r2.CFrame = CFrame.lookAt(r2.Position, Vector3.new(ttRoot.Position.X, r2.Position.Y, ttRoot.Position.Z))
-                    game:GetService("RunService").RenderStepped:Wait()
-                end
-                abs.locked = false
-            end)
-        end)
-    end
-
-    local function absHookSounds()
-        pcall(function()
-            if abs.soundConn then abs.soundConn:Disconnect(); abs.soundConn = nil end
-            local function checkSound(obj)
-                if not abs.on or not obj:IsA("Sound") then return end
-                local id = obj.SoundId:match("%d+")
-                if id and absTriggerSounds[id] then absTrigger() end
-            end
-            abs.soundConn = workspace.DescendantAdded:Connect(function(obj)
-                if obj:IsA("Sound") then
-                    checkSound(obj)
-                    obj:GetPropertyChangedSignal("SoundId"):Connect(function() checkSound(obj) end)
-                end
-            end)
-        end)
-    end
-
-    local function absStartScan()
-        if abs.scanThread then return end
-        abs.scanThread = task.spawn(function()
-            while abs.on do
-                pcall(function()
-                    local players = workspace:FindFirstChild("Players")
-                    if players then
-                        for _, folder in ipairs(players:GetChildren()) do
-                            for _, model in ipairs(folder:GetChildren()) do
-                                if model.Name == "TwoTime" then absAddRing(model) end
-                            end
-                        end
-                    end
-                    for m in pairs(abs.rings) do
-                        if not m.Parent then absRemoveRing(m) end
-                    end
-                end)
-                task.wait(1)
-            end
-            abs.scanThread = nil
-        end)
-    end
-
-    local function absStart()
-        pcall(function()
-            absHookSounds()
-            absStartScan()
-        end)
-    end
-
-    local function absStop()
-        pcall(function()
-            abs.on = false
-            if abs.soundConn then
-                abs.soundConn:Disconnect()
-                abs.soundConn = nil
-            end
-            if abs.scanThread then
-                task.cancel(abs.scanThread)
-                abs.scanThread = nil
-            end
-            absCleanRings()
-            abs.locked = false
-        end)
-    end
-
-    local lp = game.Players.LocalPlayer
-    lp.CharacterAdded:Connect(function()
-        pcall(function()
-            abs.locked = false
-            if abs.on then absStart() end
-        end)
-    end)
-
-    task.spawn(function()
-        while true do
-            task.wait(10)
-            pcall(function()
-                local deadRings = {}
-                for model, ring in pairs(abs.rings) do
-                    if not model or not model.Parent or not ring or not ring.Parent then
-                        table.insert(deadRings, model)
-                    end
-                end
-                for _, model in ipairs(deadRings) do
-                    abs.rings[model] = nil
-                end
-            end)
-        end
-    end)
-
-Feng:Toggle({
-    Name = "启用防背刺",
-    Value = abs.on,
-    Callback = function(state)
-        pcall(function()
-            abs.on = state
-            if state then absStart() else
-                absStop() 
-            end
-        end)
-    end
-})
-
-Feng:Slider({
-    Name = "检测范围",
-    Value = { 
-        Min = 10, 
-        Max = 120, 
-        Default = abs.range 
-    },
-    Callback = function(value)
-        pcall(function()
-            abs.range = value
-            absResizeRings()
-        end)
-    end
-    })
-
-Feng:Slider({
-    Name = "注视时间",
-    Value = { 
-        Min = 0.3, 
-        Max = 5.0, 
-        Default = abs.duration 
-    },
-    Callback = function(value)
-        pcall(function() 
-            abs.duration = value 
-        end)
-    end
-})
-end
-
 Window:Category({
     Name = "娱乐项目",
     Collapsible = true,
@@ -5105,7 +5078,6 @@ Feng:Button({
             local v734 = Instance.new("Animation")
             v734.AnimationId = "rbxassetid://182749109"
             local vu735 = v733:LoadAnimation(v734)
-            local v736 = vu735
             vu735:Play()
             local v737 = game:GetService("TweenService")
             local v738 = v732.CFrame * CFrame.new(0, 0, -20)
@@ -5291,24 +5263,23 @@ local statsFields = {
     ObjectivesCompleted = "任务完成数"
 }
 
-for statName, displayName in pairs(statsFields) 
-do
-Feng:Input({
-    Name = "设置 " .. displayName,
-    Placeholder = "输入数值",
-    Callback = function(value)
-        pcall(function()
-            local localPlayer = game.Players.LocalPlayer
-            local stats = localPlayer:FindFirstChild("PlayerData") and localPlayer.PlayerData:FindFirstChild("Stats")
-            if not stats then return end
-            local statObj = stats:FindFirstChild(statName, true)
-            if statObj and (statObj:IsA("NumberValue") or statObj:IsA("IntValue") or statObj:IsA("FloatValue")) then
-                local num = tonumber(value)
-                if num then statObj.Value = num end
-            end
-        end)
-    end
-})
+for statName, displayName in pairs(statsFields) do
+    Feng:Input({
+        Name = "设置 " .. displayName,
+        Placeholder = "输入数值",
+        Callback = function(value)
+            pcall(function()
+                local localPlayer = game.Players.LocalPlayer
+                local stats = localPlayer:FindFirstChild("PlayerData") and localPlayer.PlayerData:FindFirstChild("Stats")
+                if not stats then return end
+                local statObj = stats:FindFirstChild(statName, true)
+                if statObj and (statObj:IsA("NumberValue") or statObj:IsA("IntValue") or statObj:IsA("FloatValue")) then
+                    local num = tonumber(value)
+                    if num then statObj.Value = num end
+                end
+            end)
+        end
+    })
 end
 
 Window:Category({
@@ -5521,62 +5492,64 @@ local AvatarImage = Thing.imageUrl
 
 local device
 if game.UserInputService.TouchEnabled and not game.UserInputService.KeyboardEnabled and not game.UserInputService.MouseEnabled then
-  device = "移动设备"
- elseif not game.UserInputService.TouchEnabled and game.UserInputService.KeyboardEnabled and game.UserInputService.MouseEnabled then
-  device = "电脑"
- elseif game.UserInputService.TouchEnabled and game.UserInputService.KeyboardEnabled and game.UserInputService.MouseEnabled then
-  device = "带触摸屏的电脑"
+    device = "移动设备"
+elseif not game.UserInputService.TouchEnabled and game.UserInputService.KeyboardEnabled and game.UserInputService.MouseEnabled then
+    device = "电脑"
+elseif game.UserInputService.TouchEnabled and game.UserInputService.KeyboardEnabled and game.UserInputService.MouseEnabled then
+    device = "带触摸屏的电脑"
 end
 
 local msg = {
-  ["username"] = "殺脚本记录",
-  ["embeds"] = {
-    {
-      ["color"] = tonumber(tostring("0x32CD32")),
-      ["title"] = "被遗弃监控-有人正在使用" .. os.date("%H") .. "时" .. os.date("%M") .. "分",
-      ["thumbnail"] = {
-        ["url"] = AvatarImage,
-      },
-      ["fields"] = {
+    ["username"] = "殺脚本记录",
+    ["embeds"] = {
         {
-          ["name"] = "用户名",
-          ["value"] = game.Players.LocalPlayer.Name,
-          ["inline"] = true
-        },
-        {
-          ["name"] = "名称",
-          ["value"] = game.Players.LocalPlayer.DisplayName,
-          ["inline"] = true
-        },
-        {
-          ["name"] = "地图名称",
-          ["value"] = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
-          ["inline"] = true
-        },
-        {
-          ["name"] = "使用的注入器",
-          ["value"] = identifyexecutor() or getexecutorname() or "未知",
-          ["inline"] = true
-        },
-        {
-          ["name"] = "账号年龄",
-          ["value"] = game.Players.LocalPlayer.AccountAge .. "天",
-          ["inline"] = true
-        },
-        {
-          ["name"] = "设备",
-          ["value"] = device,
-          ["inline"] = false
-        },
-      }
+            ["color"] = tonumber(tostring("0x32CD32")),
+            ["title"] = "被遗弃监控-有人正在使用" .. os.date("%H") .. "时" .. os.date("%M") .. "分",
+            ["thumbnail"] = {
+                ["url"] = AvatarImage,
+            },
+            ["fields"] = {
+                {
+                    ["name"] = "用户名",
+                    ["value"] = game.Players.LocalPlayer.Name,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "名称",
+                    ["value"] = game.Players.LocalPlayer.DisplayName,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "地图名称",
+                    ["value"] = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "使用的注入器",
+                    ["value"] = identifyexecutor() or getexecutorname() or "未知",
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "账号年龄",
+                    ["value"] = game.Players.LocalPlayer.AccountAge .. "天",
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "设备",
+                    ["value"] = device,
+                    ["inline"] = false
+                },
+            }
+        }
     }
-  }
 }
 
-local request = http_request or request or HttpPost or syn.request
-request({
-  Url = "https://discord.com/api/webhooks/1449072757894545582/G3XjFZ_FnO--rDROAYrFiQS6QyrgHViBs_kyT-hJvmoTU_I3sVE6gG3xzI9NaJy97hN1",
-  Method = "POST",
-  Headers = {["Content-Type"] = "application/json"},
-  Body = game.HttpService:JSONEncode(msg)
-})
+local requestFunc = http_request or request or HttpPost or (syn and syn.request)
+if requestFunc then
+    requestFunc({
+        Url = "https://discord.com/api/webhooks/1449072757894545582/G3XjFZ_FnO--rDROAYrFiQS6QyrgHViBs_kyT-hJvmoTU_I3sVE6gG3xzI9NaJy97hN1",
+        Method = "POST",
+        Headers = {["Content-Type"] = "application/json"},
+        Body = game:GetService("HttpService"):JSONEncode(msg)
+    })
+end
