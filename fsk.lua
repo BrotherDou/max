@@ -1,3 +1,10 @@
+-- ===================================================
+-- 白名单验证状态绑定（联动加载器）
+-- ===================================================
+local isAuth = (type(getgenv) == "function" and getgenv().IsWhitelisted == true) or (_G.IsWhitelisted == true)
+local isLocked = not isAuth
+local lockTitle = "已锁定"
+
 local success, library = pcall(function()
     return loadstring(game:HttpGet("https://raw.githubusercontent.com/FengYu-X/FengYu-ui/refs/heads/main/UI.lua"))()
 end)
@@ -376,21 +383,6 @@ local Feng = FengYu:Section({
     open = true
 })
 
--- 获取白名单全局状态并控制锁定
-local isWhitelisted = (type(getgenv) == "function" and getgenv().IsWhitelisted == true)
-
-Feng:Button({
-    Name = "★ 白名单专属特权 ★",
-    Locked = not isWhitelisted,
-    LockedTitle = "未授权已锁定",
-    Callback = function()
-        print("白名单验证通过，特权功能已激活！")
-        pcall(function()
-            Window:Notification("白名单权限", "验证通过，特权功能已正常激活！", "Success", 3)
-        end)
-    end
-})
-
 Feng:Button({
     Name = "翻译过的Dex",
     Callback = function()
@@ -454,8 +446,11 @@ do
 
 Feng:Toggle({
     Name = "防眩晕",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(value)
+        if isLocked then return end
         antiBlindFreezeEnabled = value
     end
 })
@@ -751,16 +746,22 @@ Feng:Toggle({
 
 Feng:Toggle({
     Name = "穿墙",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
-    Callback = function(stateValue)
-        state.noclip = stateValue
+    Callback = function(value)
+        if isLocked then return end
+        state.noclip = value
     end
 })
 end
 
 Feng:Button({
     Name = "无敌",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Callback = function()
+        if isLocked then return end
         loadstring(request({
             Url = "https://raw.githubusercontent.com/BrotherDou/max/refs/heads/风御-X/无敌.lua"
         }).Body)()
@@ -802,12 +803,12 @@ do
         game.Lighting.FogStart = _env.NoFog and 0 or game.Lighting:GetAttribute("FogStart")
         game.Lighting.FogEnd = _env.NoFog and math.huge or game.Lighting:GetAttribute("FogEnd")
 
-        local fogObj = game.Lighting:FindFirstChildOfClass("Atmosphere")
-        if fogObj then
-            if not fogObj:GetAttribute("Density") then
-                fogObj:SetAttribute("Density", fogObj.Density)
+        local fog = game.Lighting:FindFirstChildOfClass("Atmosphere")
+        if fog then
+            if not fog:GetAttribute("Density") then
+                fog:SetAttribute("Density", fog.Density)
             end
-            fogObj.Density = _env.NoFog and 0 or fogObj:GetAttribute("Density")
+            fog.Density = _env.NoFog and 0 or fog:GetAttribute("Density")
         end
 
         if _env.Fullbright then
@@ -946,8 +947,11 @@ do
 
 Feng:Toggle({
     Name = "无限体力",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         bai.Spr = state
         local Sprinting = GetModule()
         if state then
@@ -1046,8 +1050,11 @@ Feng:Slider({
 
 Feng:Toggle({
     Name = "启用奔跑速度",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(v)
+        if isLocked then return end
         SettingToggles.SprintSpeed = v
         if not v then
             local m = GetModule()
@@ -1497,8 +1504,11 @@ do
 
 Feng:Toggle({
     Name = "医疗包传送并互动",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         autoTeleportMedkitEnabled = state
 
         if autoTeleportMedkitEnabled then
@@ -1541,8 +1551,11 @@ Feng:Toggle({
 
 Feng:Toggle({
     Name = "可乐传送并互动",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         autoTeleportColaEnabled = state
 
         if autoTeleportColaEnabled then
@@ -1585,8 +1598,11 @@ Feng:Toggle({
 
 Feng:Toggle({
     Name = "自动互动医疗包",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         autoMedkitEnabled = state
 
         if autoMedkitEnabled then
@@ -1622,8 +1638,11 @@ Feng:Toggle({
 
 Feng:Toggle({
     Name = "自动互动可乐",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         autoColaEnabled = state
 
         if autoColaEnabled then
@@ -1787,8 +1806,11 @@ do
 
 Feng:Toggle({
     Name = "绘制修机",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(on)
+        if isLocked then return end
         flow.on = on
         if on and not hooked then
             setupFlowHook()
@@ -1826,8 +1848,11 @@ Feng:Divider()
 
 Feng:Toggle({
     Name = "自动修复发电机",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(value)
+        if isLocked then return end
         vu2.autoRepairActive = value
     end
 })
@@ -1895,7 +1920,10 @@ Feng:Toggle({
 
 Feng:Button({
     Name = "完成所有发电机",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Callback = function()
+        if isLocked then return end
         pcall(function()
             local gameMap = workspace:FindFirstChild("Map")
             if not (gameMap and gameMap:FindFirstChild("Ingame") and gameMap.Ingame:FindFirstChild("Map")) then
@@ -2165,16 +2193,22 @@ do
 
 Feng:Toggle({
     Name = "启用机会射击自瞄",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(v)
+        if isLocked then return end
         ChanceAimbot.Enabled = v
     end
 })
 
 Feng:Toggle({
     Name = "瞄准预测",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(v)
+        if isLocked then return end
         ChanceAimbot.Prediction = v
     end
 })
@@ -2512,16 +2546,22 @@ do
 
 Feng:Toggle({
     Name = "自动背刺",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state) 
+        if isLocked then return end
         enabled = state 
     end
 })
 
 Feng:Toggle({
     Name = "背刺时自动攻击",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state) 
+        if isLocked then return end
         daggerEnabled = state 
     end
 })
@@ -2634,7 +2674,10 @@ local Feng = FengYu:Section({
 
 Feng:Button({
     Name = "格挡脚本",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Callback = function()
+        if isLocked then return end
         loadstring(game:HttpGet("https://raw.githubusercontent.com/BrotherDou/max/refs/heads/main/Auto.lua"))()
     end
 })
@@ -2646,6 +2689,7 @@ local Feng = FengYu:Section({
     open = true,
 })
 
+
 local Feng = FengYu:Section({
     Name = "维罗妮卡",
     SubName = "滑板小子咔嚓的一声闪亮登场",
@@ -2656,8 +2700,11 @@ local Feng = FengYu:Section({
 local VeronicaSk8Control = false
 Feng:Toggle({
     Name = "启用滑板控制",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         VeronicaSk8Control = state
     end
 })
@@ -2850,8 +2897,11 @@ do
 
 Feng:Toggle({
     Name = "吸血鬼自动挣脱",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         AutoEscapeEnabled = state
     end
 })
@@ -3030,8 +3080,11 @@ do
 
 Feng:Toggle({
     Name = "禁用约翰.多脚气伤害",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         DisableToxicTrails = state
         UpdateInGame()
         HandleDisableToxicTrails(state)
@@ -3124,8 +3177,11 @@ do
 
 Feng:Toggle({
     Name = "禁用约翰.多脚印大规模伤害",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         DisableFootprints = state
         UpdateInGame()
         HandleDisableFootprints(state)
@@ -3252,8 +3308,11 @@ do
 
 Feng:Toggle({
     Name = "禁用杀手墙",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         DisableKillerWallsEnabled = state
         UpdateGameMap()
         HandleDisableKillerWalls(state, false)
@@ -3336,8 +3395,11 @@ do
 
 Feng:Toggle({
     Name = "启用碰撞箱扩展",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(v)
+        if isLocked then return end
         hitboxExtender.enabled = v
     end
 })
@@ -3498,24 +3560,33 @@ do
 
 Feng:Toggle({
     Name = "访客666 - 空中控制",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         dashTurn.sixer = state
     end
 })
 
 Feng:Toggle({
     Name = "酷小孩 - 冲刺控制",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         dashTurn.coolkid = state
     end
 })
 
 Feng:Toggle({
     Name = "诺利 - 冲刺控制",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         dashTurn.noli = state
         if not state then noliStopOverride() end
     end
@@ -3679,8 +3750,11 @@ do
 
 Feng:Toggle({
     Name = "使用自瞄",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = aim.on,
     Callback = function(state)
+        if isLocked then return end
         aim.on = state
         if not state then aimUnlock() end
     end
@@ -3932,8 +4006,11 @@ do
 
 Feng:Toggle({
     Name = "启用防背刺",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = abs.on,
     Callback = function(state)
+        if isLocked then return end
         pcall(function()
             abs.on = state
             if state then absStart() else
@@ -3956,7 +4033,7 @@ Feng:Slider({
             absResizeRings()
         end)
     end
-    })
+})
 
 Feng:Slider({
     Name = "注视时间",
@@ -4147,8 +4224,11 @@ do
 
 Feng:Toggle({
     Name = "击杀模式",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(val)
+        if isLocked then return end
         if val then startKillAll() else
             stopKillAll() 
         end
@@ -4157,17 +4237,22 @@ Feng:Toggle({
 
 Feng:Toggle({
     Name = "传送模式",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(val)
+        if isLocked then return end
         u2.killAllTeleport = val
-             if val then u2.killAllFly = false 
-        end
+        if val then u2.killAllFly = false end
     end
 })
 
 Feng:Button({
     Name = "切换目标",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Callback = function()
+        if isLocked then return end
         u5.currentTarget = getNearestSurvivor()
     end
 })
@@ -4284,8 +4369,11 @@ do
 
 Feng:Toggle({
     Name = "冲向幸存者",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = false,
     Callback = function(state)
+        if isLocked then return end
         suction.enabled = state
         if state then startSuction() 
         else stopSuction() 
@@ -4575,9 +4663,12 @@ do
 
 Feng:Toggle({
     Name = "狂暴速度",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = SlasherSettings.EnragedEnabled,
     Callback = function(val)
-        SlasherSettings.EnragedMultiplier = val
+        if isLocked then return end
+        SlasherSettings.EnragedEnabled = val
     end
 })
 
@@ -4596,8 +4687,11 @@ Feng:Slider({
 
 Feng:Toggle({
     Name = "自动狂暴速度格挡",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = SlasherSettings.AutoParry,
     Callback = function(val)
+        if isLocked then return end
         SlasherSettings.AutoParry = val
     end
 })
@@ -4831,8 +4925,11 @@ do
 
 Feng:Toggle({
     Name = "自动404错误格挡",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Value = JohnDoeSettings.AutoParry,
     Callback = function(val)
+        if isLocked then return end
         JohnDoeSettings.AutoParry = val
     end
 })
@@ -5078,6 +5175,7 @@ Feng:Button({
             local v734 = Instance.new("Animation")
             v734.AnimationId = "rbxassetid://182749109"
             local vu735 = v733:LoadAnimation(v734)
+            local v736 = vu735
             vu735:Play()
             local v737 = game:GetService("TweenService")
             local v738 = v732.CFrame * CFrame.new(0, 0, -20)
@@ -5174,7 +5272,10 @@ local Feng = FengYu:Section({
 
 Feng:Button({
     Name = "解锁全部角色和皮肤",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Callback = function()
+        if isLocked then return end
         task.spawn(function()
             local player = game.Players.LocalPlayer
             local purchased = player:WaitForChild("PlayerData"):WaitForChild("Purchased")
@@ -5210,7 +5311,10 @@ Feng:Button({
 
 Feng:Button({
     Name = "解锁所有动作",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Callback = function()
+        if isLocked then return end
         task.spawn(function()
             local player = game.Players.LocalPlayer
             local purchased = player:WaitForChild("PlayerData"):WaitForChild("Purchased")
@@ -5230,7 +5334,10 @@ Feng:Button({
 
 Feng:Button({
     Name = "解锁VIP权限",
+    Locked = isLocked,
+    LockedTitle = lockTitle,
     Callback = function()
+        if isLocked then return end
         local localPlayer = game.Players.LocalPlayer
         localPlayer:SetAttribute("VIP", true)
         
@@ -5263,23 +5370,27 @@ local statsFields = {
     ObjectivesCompleted = "任务完成数"
 }
 
-for statName, displayName in pairs(statsFields) do
-    Feng:Input({
-        Name = "设置 " .. displayName,
-        Placeholder = "输入数值",
-        Callback = function(value)
-            pcall(function()
-                local localPlayer = game.Players.LocalPlayer
-                local stats = localPlayer:FindFirstChild("PlayerData") and localPlayer.PlayerData:FindFirstChild("Stats")
-                if not stats then return end
-                local statObj = stats:FindFirstChild(statName, true)
-                if statObj and (statObj:IsA("NumberValue") or statObj:IsA("IntValue") or statObj:IsA("FloatValue")) then
-                    local num = tonumber(value)
-                    if num then statObj.Value = num end
-                end
-            end)
-        end
-    })
+for statName, displayName in pairs(statsFields) 
+do
+Feng:Input({
+    Name = "设置 " .. displayName,
+    Locked = isLocked,
+    LockedTitle = lockTitle,
+    Placeholder = "输入数值",
+    Callback = function(value)
+        if isLocked then return end
+        pcall(function()
+            local localPlayer = game.Players.LocalPlayer
+            local stats = localPlayer:FindFirstChild("PlayerData") and localPlayer.PlayerData:FindFirstChild("Stats")
+            if not stats then return end
+            local statObj = stats:FindFirstChild(statName, true)
+            if statObj and (statObj:IsA("NumberValue") or statObj:IsA("IntValue") or statObj:IsA("FloatValue")) then
+                local num = tonumber(value)
+                if num then statObj.Value = num end
+            end
+        end)
+    end
+})
 end
 
 Window:Category({
@@ -5492,64 +5603,62 @@ local AvatarImage = Thing.imageUrl
 
 local device
 if game.UserInputService.TouchEnabled and not game.UserInputService.KeyboardEnabled and not game.UserInputService.MouseEnabled then
-    device = "移动设备"
-elseif not game.UserInputService.TouchEnabled and game.UserInputService.KeyboardEnabled and game.UserInputService.MouseEnabled then
-    device = "电脑"
-elseif game.UserInputService.TouchEnabled and game.UserInputService.KeyboardEnabled and game.UserInputService.MouseEnabled then
-    device = "带触摸屏的电脑"
+  device = "移动设备"
+ elseif not game.UserInputService.TouchEnabled and game.UserInputService.KeyboardEnabled and game.UserInputService.MouseEnabled then
+  device = "电脑"
+ elseif game.UserInputService.TouchEnabled and game.UserInputService.KeyboardEnabled and game.UserInputService.MouseEnabled then
+  device = "带触摸屏的电脑"
 end
 
 local msg = {
-    ["username"] = "殺脚本记录",
-    ["embeds"] = {
+  ["username"] = "殺脚本记录",
+  ["embeds"] = {
+    {
+      ["color"] = tonumber(tostring("0x32CD32")),
+      ["title"] = "被遗弃监控-有人正在使用" .. os.date("%H") .. "时" .. os.date("%M") .. "分",
+      ["thumbnail"] = {
+        ["url"] = AvatarImage,
+      },
+      ["fields"] = {
         {
-            ["color"] = tonumber(tostring("0x32CD32")),
-            ["title"] = "被遗弃监控-有人正在使用" .. os.date("%H") .. "时" .. os.date("%M") .. "分",
-            ["thumbnail"] = {
-                ["url"] = AvatarImage,
-            },
-            ["fields"] = {
-                {
-                    ["name"] = "用户名",
-                    ["value"] = game.Players.LocalPlayer.Name,
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "名称",
-                    ["value"] = game.Players.LocalPlayer.DisplayName,
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "地图名称",
-                    ["value"] = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "使用的注入器",
-                    ["value"] = identifyexecutor() or getexecutorname() or "未知",
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "账号年龄",
-                    ["value"] = game.Players.LocalPlayer.AccountAge .. "天",
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "设备",
-                    ["value"] = device,
-                    ["inline"] = false
-                },
-            }
-        }
+          ["name"] = "用户名",
+          ["value"] = game.Players.LocalPlayer.Name,
+          ["inline"] = true
+        },
+        {
+          ["name"] = "名称",
+          ["value"] = game.Players.LocalPlayer.DisplayName,
+          ["inline"] = true
+        },
+        {
+          ["name"] = "地图名称",
+          ["value"] = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
+          ["inline"] = true
+        },
+        {
+          ["name"] = "使用的注入器",
+          ["value"] = identifyexecutor() or getexecutorname() or "未知",
+          ["inline"] = true
+        },
+        {
+          ["name"] = "账号年龄",
+          ["value"] = game.Players.LocalPlayer.AccountAge .. "天",
+          ["inline"] = true
+        },
+        {
+          ["name"] = "设备",
+          ["value"] = device,
+          ["inline"] = false
+        },
+      }
     }
+  }
 }
 
-local requestFunc = http_request or request or HttpPost or (syn and syn.request)
-if requestFunc then
-    requestFunc({
-        Url = "https://discord.com/api/webhooks/1449072757894545582/G3XjFZ_FnO--rDROAYrFiQS6QyrgHViBs_kyT-hJvmoTU_I3sVE6gG3xzI9NaJy97hN1",
-        Method = "POST",
-        Headers = {["Content-Type"] = "application/json"},
-        Body = game:GetService("HttpService"):JSONEncode(msg)
-    })
-end
+local request = http_request or request or HttpPost or syn.request
+request({
+  Url = "https://discord.com/api/webhooks/1449072757894545582/G3XjFZ_FnO--rDROAYrFiQS6QyrgHViBs_kyT-hJvmoTU_I3sVE6gG3xzI9NaJy97hN1",
+  Method = "POST",
+  Headers = {["Content-Type"] = "application/json"},
+  Body = game.HttpService:JSONEncode(msg)
+})
