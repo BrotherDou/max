@@ -1,6 +1,3 @@
--- ===================================================
--- 白名单验证状态绑定（联动加载器）
--- ===================================================
 local isAuth = (type(getgenv) == "function" and getgenv().IsWhitelisted == true) or (_G.IsWhitelisted == true)
 local isLocked = not isAuth
 local lockTitle = "已锁定"
