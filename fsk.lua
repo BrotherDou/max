@@ -1,4 +1,22 @@
-local isAuth = (type(getgenv) == "function" and getgenv().IsWhitelisted == true) or (_G.IsWhitelisted == true)
+-- ===================================================
+-- 核心鉴权逻辑（双轨兼容：服务端动态注入 + 加载器全局变量）
+-- ===================================================
+local isAuth = false
+
+-- 1. 优先读取服务端下发时注入的内部不可篡改变量
+pcall(function()
+    if __AUTH_INTERNAL__ ~= nil then
+        isAuth = (__AUTH_INTERNAL__ == true)
+    end
+end)
+
+-- 2. 兼容传统加载器通过全局环境传递的授权状态 (兜底)
+if not isAuth then
+    if (type(getgenv) == "function" and getgenv().IsWhitelisted == true) or (_G.IsWhitelisted == true) then
+        isAuth = true
+    end
+end
+
 local isLocked = not isAuth
 local lockTitle = "已锁定"
 
@@ -2932,7 +2950,7 @@ Feng:Slider({
             return
         end
 
-        tempUI.ChildAdded:Connect(function(uiElement)
+        tempUI.ChildAdded:Connect(uiElement)
             if uiElement.Name:upper() == "QTE" and uiElement:FindFirstChildOfClass("UIAspectRatioConstraint") then
                 task.spawn(function()
                     while uiElement and uiElement.Visible and AutoEscapeEnabled do
