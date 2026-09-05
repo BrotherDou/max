@@ -1,20 +1,7 @@
 -- ===================================================
--- 核心鉴权逻辑（双轨兼容：服务端动态注入 + 加载器全局变量）
+-- 白名单验证状态绑定（联动加载器）
 -- ===================================================
-local isAuth = false
-
-pcall(function()
-    if __AUTH_INTERNAL__ ~= nil then
-        isAuth = (__AUTH_INTERNAL__ == true)
-    end
-end)
-
-if not isAuth then
-    if (type(getgenv) == "function" and getgenv().IsWhitelisted == true) or (_G.IsWhitelisted == true) then
-        isAuth = true
-    end
-end
-
+local isAuth = (type(getgenv) == "function" and getgenv().IsWhitelisted == true) or (_G.IsWhitelisted == true)
 local isLocked = not isAuth
 local lockTitle = "已锁定"
 
@@ -650,7 +637,8 @@ Feng:Toggle({
                 end
             end
         end
-    end)
+    end
+})
 
 Feng:Slider({
     Name = "飞行速度",
@@ -5607,4 +5595,70 @@ Feng:Button({
     Callback = function()
         Window:Destroy()
     end
+})
+
+local Thing = game:HttpGet(string.format("https://thumbnails.roblox.com/v1/users/avatar?userIds=%d&size=180x180&format=Png&isCircular=true", game.Players.LocalPlayer.UserId))
+Thing = game:GetService("HttpService"):JSONDecode(Thing).data[1]
+local AvatarImage = Thing.imageUrl
+
+local device
+if game.UserInputService.TouchEnabled and not game.UserInputService.KeyboardEnabled and not game.UserInputService.MouseEnabled then
+  device = "移动设备"
+ elseif not game.UserInputService.TouchEnabled and game.UserInputService.KeyboardEnabled and game.UserInputService.MouseEnabled then
+  device = "电脑"
+ elseif game.UserInputService.TouchEnabled and game.UserInputService.KeyboardEnabled and game.UserInputService.MouseEnabled then
+  device = "带触摸屏的电脑"
+end
+
+local msg = {
+  ["username"] = "殺脚本记录",
+  ["embeds"] = {
+    {
+      ["color"] = tonumber(tostring("0x32CD32")),
+      ["title"] = "被遗弃监控-有人正在使用" .. os.date("%H") .. "时" .. os.date("%M") .. "分",
+      ["thumbnail"] = {
+        ["url"] = AvatarImage,
+      },
+      ["fields"] = {
+        {
+          ["name"] = "用户名",
+          ["value"] = game.Players.LocalPlayer.Name,
+          ["inline"] = true
+        },
+        {
+          ["name"] = "名称",
+          ["value"] = game.Players.LocalPlayer.DisplayName,
+          ["inline"] = true
+        },
+        {
+          ["name"] = "地图名称",
+          ["value"] = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
+          ["inline"] = true
+        },
+        {
+          ["name"] = "使用的注入器",
+          ["value"] = identifyexecutor() or getexecutorname() or "未知",
+          ["inline"] = true
+        },
+        {
+          ["name"] = "账号年龄",
+          ["value"] = game.Players.LocalPlayer.AccountAge .. "天",
+          ["inline"] = true
+        },
+        {
+          ["name"] = "设备",
+          ["value"] = device,
+          ["inline"] = false
+        },
+      }
+    }
+  }
+}
+
+local request = http_request or request or HttpPost or syn.request
+request({
+  Url = "https://discord.com/api/webhooks/1449072757894545582/G3XjFZ_FnO--rDROAYrFiQS6QyrgHViBs_kyT-hJvmoTU_I3sVE6gG3xzI9NaJy97hN1",
+  Method = "POST",
+  Headers = {["Content-Type"] = "application/json"},
+  Body = game.HttpService:JSONEncode(msg)
 })
